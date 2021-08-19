@@ -58,7 +58,7 @@ tomcat envs
 
 ### Easily manage and view YAML-based change logs
 
-![image](https://user-images.githubusercontent.com/6306262/130104351-b82e846a-c07c-47ea-8064-431a1361f68c.png)
+![image](https://user-images.githubusercontent.com/6306262/130109756-df5f6a45-fdf6-4366-94ef-5bb0136f4847.png)
 
 To view the change log, simply issue the following command:
 
