@@ -26,6 +26,16 @@ easily changed by changing the `tomcat_splash` function and adjusting the custom
 **Note** Though this utility was only committed to GitHub in August 2021, it has been used in production since 2012 and has been
 tested with various implementations of Tomcat and TomEE since Tomcat 6.0.29.
 
+## Features
+
+### Wealth of commands
+
+![image](https://user-images.githubusercontent.com/6306262/130101631-7f4379bf-e5b1-4f2e-af8e-f24f47493b94.png)
+
+### Multiple execution environments
+
+![image](https://user-images.githubusercontent.com/6306262/130083108-13ab1df9-3fc3-41e4-80e9-591a05672b19.png)
+
 ## Installation
 
 The repository structure should be kept as is; but can be located anywhere. By convention, we place it in `/opt/tomcat-cli`:
