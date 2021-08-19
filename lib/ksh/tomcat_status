@@ -1,0 +1,41 @@
+#! ksh
+
+function tomcat_status {
+    print "Tomcat CLI ${rc.prog.version:+v${rc.prog.version}}${rc.prog.release:+ (${rc.prog.release})}"
+
+    # Collect PID file info
+    tomcat_getpidf; if (( rc.tomcat.pid.running == true )); then
+
+        if (( rc.tomcat.pid.file == PIDF_FOUND )); then
+            clog +croak-info "Tomcat is currently running with PID \E[33m${rc.tomcat.pid.id}\E[0m"
+            clog +croak-info "The PID file is \E[33m${rc.tomcat.pidf}\E[0m."
+            clog +trace 'The following environment has been set for this execution:'
+            clog +trace "$(print -v rc.tomcat.pid.info | sed 's/^/    /')"
+            return 0
+        fi
+
+        clog +warn "Tomcat is apparently running with pid #${rc.tomcat.pid.id}, but without an associated PID file."
+
+    else
+
+        if (( rc.tomcat.pid.file == PIDF_NOTFOUND ))
+        then clog +croak-info 'Apparently Tomcat is not running'
+        else clog +croak-warn 'Tomcat is not running but we have a PID file!'; fi
+
+        typeset name; for name in \
+            CATALINA_BASE CATALINA_HOME CATALINA_OPTS CATALINA_OUT CATALINA_PID CATALINA_SETENV CATALINA_TMPDIR \
+            _RUNJAVA JRE_HOME JAVA_HOME CLASSPATH JAVA_OPTS JAVA_ENDORSED_DIRS \
+            JPDA_ADDRESS JPDA_OPTS JPDA_SUSPEND JPDA_TRANSPORT \
+            LOGGING_CONFIG LOGGING_MANAGER
+        do
+            nameref value=$name
+            [[ -n $value ]] || continue
+            clog +trace "$name=$value"
+        done
+    fi
+
+    return 1
+
+}
+
+# __END__

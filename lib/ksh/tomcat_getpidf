@@ -1,0 +1,44 @@
+#! ksh
+#! @revision 2021-08-17 (Tue) 06:54:53
+#! @brief    Populates `rc.tomcat.pid` with the contents of the PID file, if any
+
+# A custom enumeration to handle to check the state of a PID file
+enum pidfstate_e=( PIDF_NOTFOUND PIDF_NOTREADABLE PIDF_EMPTY PIDF_INVALID PIDF_FOUND )
+
+function tomcat_getpidf { # [pidf]
+
+    # Collect command line arguments and assign defaults
+    typeset pidf=${1:-${rc.tomcat.pidf}}
+
+    # Make sure we have defined a path for the PID file (this would be a programmer's error)
+    [[ -z $pidf ]] && clog +abort "Houston, we\'ve had a problem: no PID file has been defined."
+
+    # Assign defaults
+    integer     rc.tomcat.pid.id=0
+    boolean     rc.tomcat.pid.running=false
+    pidfstate_e rc.tomcat.pid.file
+    typeset     rc.tomcat.info=''
+
+    # See whether a PID file exists or not, is readble, and is not empty
+         if [[ -f $pidf ]]
+    then if [[ -r $pidf ]]
+    then if [[ -s $pidf ]]
+    then rc.tomcat.pid.file=PIDF_FOUND
+    else rc.tomcat.pid.file=PIDF_EMPTY;       fi
+    else rc.tomcat.pid.file=PIDF_NOTREADABLE; fi
+    else rc.tomcat.pid.file=PIDF_NOTFOUND;    fi
+
+    # We're done, unless the PID file exists
+    (( rc.tomcat.pid.file == PIDF_FOUND )) || return
+
+    # Parse and split the file's information (use interim `pid` variable in case PID line is not numeric)
+    typeset pid=$(sed -n '1p' $pidf); rc.tomcat.pid.id=$pid
+    rc.tomcat.pid.info="$(sed -n '2,${/^[^#]/p;}' $pidf)"
+    [[ rc.tomcat.pid.id == 0 || rc.tomcat.pid.info == '' ]] && rc.tomcat.pid.file=PIDF_INVALID
+
+    # Determine whether process is running or sale
+    ps -p ${rc.tomcat.pid.id} >/dev/null 2>&1 && rc.tomcat.pid.running=true
+
+}
+
+# __END__

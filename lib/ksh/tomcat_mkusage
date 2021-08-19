@@ -1,0 +1,272 @@
+#! ksh
+#! @revision 2021-08-18 (Wed) 12:58:18
+#! @brief    Initialise the `getopts(1)` usage string
+
+typeset usage='[-1s1]'; usage+=$(grep '^#! @' ${rc.prog.path}/${rc.prog.name} | sed 's/^#! @/[-/; s/  */?/; s/$/]/')
+
+case ${rc.opts.command} in                                                  # Name + description
+envs)
+    usage+=$'[+NAME?tomcat envs - Enumerate currently configured environments.]
+    [+DESCRIPTION?This will enumerate the environment files (\v.env*\v) found in this utility\'s top-level directory. If the
+    Doxygen tokens \v@revision\v and \v@brief\v are provided, these will be used in the enumerated list.]'
+    ;;
+
+start)
+    usage+=$'[+NAME?tomcat start - Start the Apache Tomcat server.]'
+    ;;
+status)
+    usage+=$'[+NAME?tomcat status - Get current status of the Apache Tomcat server.]'
+    ;;
+stop)
+    usage+=$'[+NAME?tomcat stop - Stop the Apache Tomcat server.]'
+    ;;
+'')
+    usage+=$'[+NAME?tomcat -- shell frontend for the Java Tomcat server.]
+    [+DESCRIPTION?This is an opiniated port of the Catalina command line tools. It is essentially a rewrite, and consolidation, of
+    the \vcatalina.sh\v and the associated \v*.sh\v scripts in a standard Tomcat\'s \vbin\v directory, namely \vconfigtest.sh\v,
+    \vdaemon.sh\v, \vdigest.sh\v, \vsetclasspath.sh\v, \vshutdown.sh\v, \vstartup.sh\v, \vtomee.sh\v, \vtool-wrapper.sh\v, and
+    \vversion.sh\v.]
+    [+?It provides a POSIX-like command line interfaces and deprecates the use of myriad environment variables; see the JAVA
+    CONFIGURATION and ENVIRONMENT VARIABLES section below. See also the SAMINFO section when running the \aSAMinfo\a ERP.]
+    [+?Using distinct values for \b--home\b and \b--base\b options is recommended to simplify further upgrades and maintenance.
+      This is documented in the MULTIPLE INSTANCES section below.]
+    [+?Note that support for Windows/Cygwin and OS 400 have been dropped.]
+    [+COMMANDS]{
+      [+backup?Create a snapshot of essential Tomcat configuration files.]
+      [+changelog?View the Git repository\'s \bChangeLog\b file, if accessible.]
+      [+debug?DEPRECATED. Start Tomcat in a debugger]
+      [+envs?Enumerated currently configured environments.]
+      [+install?Install Apache Tomcat into the specified \b--home\b directory.]
+      [+jpda?DEPRECATED. Start Tomcat under JPDA debugger]
+      [+readme?View the Git repository\'s \bREADME.md\b file, if accessible.]
+      [+run?Start Tomcat in the current window]
+      [+start?Start Tomcat in a separate window]
+      [+stop?Stop Tomcat]
+      [+update?Automatically download war files from GitHub and install them. Typically used to update SAMinfo.]
+      [+version?What version of tomcat are you running?]
+      [+build-tomcat?Build Apache Tomcat from source code. This will do a full \brelease\b build and install the resulting
+        output.]
+      [+build-libapr?Builds and installs the Apache Tomcat \bNative library\b, a library that allows to use the \bAPR\b variant
+        of \bHTTP\b and \bAJP\b protocol connectors in Apache Tomcat. It is built around \bOpenSSL\b and \bApache Portable
+        Runtime\b (APR) libraries. Those are the same libraries as used by Apache HTTPD Server project. The library is
+        enabled/disabled in the \bconf/server.xml\b configuration file through the \bAprLifecyleListener\b property.]
+      [+:build-daemon?Builds and installs the \bApache Commons Daemon\b, which provides wrappers that are used to install Apache
+          Tomcat as a daemon.]}' ;;
+esac
+
+if [[ ${rc.opts.command} != @(|envs) ]]; then                               # Options
+usage+=$'[b:base?Base directory for resolving dynamic portions of a Tomcat installation.
+  If not present, resolves to the same directory that \b--home\b points to.
+  This option replaces/overrides the \bCATALINA_BASE\b environment variable.]:[STRING]
+[c:console?Full path to a file where \bSTDOUT\b and \bSTDERR\b will be redirected.
+  This option replaces/overrides the \bCATALINA_OUT\b environment variable.]:[STRING]
+[e:env?Specify an environment SUFFIX that will be used to load custom presets. The environment file\'s name will be constructed
+by concatenating the default environment file\'s name and the provided SUFFIX: \b.env-SUFFIX\b. This will be loaded in lieu of the
+default environment file]:[SUFFIX:=.env]
+[f:force?Used with the \bstop\b command. If after 5 seconds the Tomcat process is not terminated, the \bkill\b command will be
+  used to force a shutdown of the service. If a grace period has been provided with the \b--grace\b option, then the specified
+  grace period will be used as the delay in lieu of the default 5 seconds.]
+[g:grace?Used with the \bstop\b command to specify a grace period in seconds to wait for the process to end.
+  This can be used in conjunction with the \b--force\b option.]#[SECONDS:=5]
+[h:home?Point at your Tomcat \bbuild\b directory.
+  This defaults to this scripts parent directory, assuming that this script lives in a subdirectory named \bbin\b.
+  This option replaces/overrides the \bCATALINA_HOME\b environment variable.]:[STRING]
+[l:log-config?Override Tomcat\'s logging config file.
+  This option replaces/overrides the \bLOGGING_CONFIG\b and \bCATALINA_LOGGING_CONFIG\b environment variables.]:[STRING]
+  {[+Example?--log-config="-Djava.util.logging.config.file=$CATALINA_BASE/conf/logging.properties"]}
+[n:pipe?Specify a COMMAND which will be used to create a named pipe that receives as its STDIN the STDOUT and STDERR from the
+  Tomcat Java. process. This option replaces/overrides the \bCATALINA_OUT_CMD\b environment variable.]:[COMMAND]
+  {[+Example?--pipe="/usr/bin/rotatelogs -f $CATALINA_BASE/logs/catalina.out.%Y-%m-%d.log 86400"]}
+[m:log-manager?Override Tomcat\'s logging manager.
+  This option replaces/overrides the \bLOGGING_MANAGER\b environment variable.]:[STRING]
+  {[+Example?--log-manager="-Djava.util.logging.config.file=$CATALINA_BASE/conf/logging.properties"]}
+[o:options?Java runtime options used when the \bstart\b or \brun\b commands are executed.
+  This option replaces/overrides the \bCATALINA_OPTS\b environment variable.]:[STRING]
+[p:pid-file?Path of the file which should contains the pid of catalina startup java process, when start (fork) is used.
+  This option replaces/overrides the \bCATALINA_PID\b environment variable.]:[STRING]
+[t:temp?Directory path location of temporary directory the JVM should use (\bjava.io.tmpdir\b).
+  This option replaces/overrides the \bCATALINA_TMPDIR\b environment variable.]:[STRING]
+[u:umask?Set the file mode creation mask that will be used by Tomcat.]:[MASK]
+[z:zap*-logs?Rather than rotating existing log files, zap them (i.e. delete them).]
+[+Java-related options?]
+[C:classpath?See option \b--path\b.
+  You can use the conventional \bCLASSPATH\b environment variable in lieu of this option.]:[STRING]
+[E:endorsed?Colon separated list of directories containing some jars in order to allow replacement of APIs created outside of the
+  JCP (i.e. DOM and SAX from W3C). It can also be used to update the XML parser implementation.
+  This option replaces/overrides the \bJAVA_ENDORSED_DIRS\b environment variable.]:[STRING]
+  {[+Note?This option was dropped from Java 9 onwards.]}
+[H:java-home?Must point at your \bJava Development Kit\b (JDK) installation. Required to run with the \bdebug\b command.
+  Using \b--java-home\b provides access to certain additional startup options that are not allowed when \b--jre-home\b is used.
+  You can use the conventional \bJAVA_HOME\b environment variable in lieu of this option.]:[STRING]
+[J:jre-home?Must point at your \bJava Development Kit installation\b. Defaults to \b--java-home\b if empty.
+  If both \--jre-home\b and \b--java-home\b are specified, \b--java-home\b will be used.
+  You can use the conventional \bJRE_HOME\b environment variable in lieu of this option.]:[STRING]
+[M:java?Indicate the major version NUMBER of the Java package being used. Alternatively, you can specify a source and target
+  number separated by a colon (\bNUMBER:NUMBER\b). This information is used for compatibility purposes when building the Java
+  command used to run the Tomcat server. When a binome specification is provided this is also used to populate, respectively, the
+  Java command line options \b-source\b and \b-target\b. This information can also be provided in environment files throught the
+  \bJAVA_MAJOR\b environment variable.]#[NUMBER]
+[O:java-options?Use this option to specify Java runtime options used when any command is executed. As a general rule, include
+  here all options that should be accessible to all commands, and include in \b--options\b all Java options that specifically
+  relate to the \bstart\b command. In particular, do not use \b--java-options\b to specify memory limits that pertain to the web
+  applications run through Tomcat; those settings belong to \b--options\b.
+  You can use the conventional \bJAVA_OPTS\b environment variable in lieu of this option.]:[STRING]
+[S!:security?Allows to start Tomcat with a security manager.
+  Used with either the \bdebug\b, \brun\b, and \bstart\b commands.]
+[=20:jsse?Java runtime options used to control the TLS implementation when JSSE is used.
+  You can use the conventional \bJSSE_OPTS\b environment variable in lieu of this option.
+  This option is only applicable to TomEE.]:[STRING:=-Djdk.tls.ephemeralDHKeySize=2048]'
+fi
+
+if [[ ${rc.opts.command} == @(start|run) ]]; then                           # Debugging options
+usage+=$'[+Debugging options?]
+[d:jpda?Start Tomcat under the JPDA debugger.
+  Used with the \bstart\b command.]
+[A:jpda-address?Java runtime options used when the \bjpda start\b command is executed. The default is \b8000\b.
+  This option replaces/overrides the \bJPDA_ADDRESS\b environment variable.]:[STRING]
+[D:jpda-options?Java runtime options used when the \bjpda start\b command is executed. If used, \bjpda-address\b,
+  \bjpda-suspend\b, and \bjpda-transport\b are ignored. Thus, all required JPDA options MUST be specified.
+  This option replaces/overrides the \bJPDA_OPTS\b environment variable.]:[STRING]
+[K:jpda-suspend?Specifies whether JVM should suspend execution immediately after startup.
+  Java runtime options used when the \bjpda start\b command is executed. The default is \bn\b.
+  This option replaces/overrides the \bJPDA_SUSPEND\b environment variable.]:[STRING]
+[T:jpda-transport?JPDA transport used when the \b--jpda\b option is set. The default is \bdt_socket\b.
+  This option replaces/overrides the \bJPDA_TRANSPORT\b environment variable.]:[STRING]'
+fi
+
+if [[ ${rc.opts.command} != @(|envs) ]]; then                               # Common options
+usage+=$'[+Common options]
+[v!:quiet?Verbose mode. Causes this utility to show more or less information about its progress. This is helpful in debugging.
+    Multiple \b-v\b options increase the verbosity. The maximum is 4.]{
+    [\-quiet?Silence all messages except critical errors.]
+    [\-default?Only show errors and warnings (level 0)]
+    [+-v?Level 0 + notifications (level 1)]
+    [+-vv?Level 1 + verbose messages (level 2)]
+    [+-vvv?Level 2 + execution trace messages (level 3)]
+    [+-vvvv?Level 3 + debugging information (level 4)]
+    [+?Verbose mode only applies to shell execution environments; not to spawned programs, except for Dragonfly-aware programs.]}
+[=04!:colourise?Colourise terminal outputs.]
+[=02!:exec?this utility\'s normal behaviour is to enact its functionality using any passed arguments. Use the \b--noexec\b option
+    o put this utility in simulation mode. In this mode this utility will not perform any unrecoverable modification of the
+    environment nor will it launch applications and server-side middleware.]'
+[[ ${rc.opts.command} == @(start|run) ]] &&
+usage+=$'[=06:nohup?When starting the Tomcat server, use \bnohup(1)\b so that the Tomcat process will ignore any hangup signals.]'
+usage+=$'[=05!:splash*-screen?Show splash screen.]
+[=03!:terminal?When run from a terminal, this utility assumes it is in interactive mode. Using the \b--noterminal\b option will
+    force it to run in batch mode.]
+[=01:version?Display this utility version and about information.]'
+fi
+
+if [[ -z ${rc.opts.command} ]]; then                                        # Main man page only
+usage+=$'[+SAMINFO?The recommended customisations for running in a \bSAMinfo\b environment are:][+\
+  --pid=${rc.host.lockdir::-/var/lock}/tomcat.pid \
+  --home=${rc.host.datadir::-/usr/local/share}/tomcat \
+  --base=${rc.host.datadir::-/usr/local/share}/saminfo]
+[+JAVA CONFIGURATION?This utility provides many command line options to configure execution of the Java virtual machine, in
+  particular the \b--java-home\b and \b--jre-home\b options which can be used, respectively, to specify the location of a \bJava
+  Runtime Environment\b (JRE) or of a \bJava Development Kit\b (JDK) that will be used to start Tomcat.]
+[+?Alternatively, these locations can be set using the conventional environment variables \bJRE_HOME\b or \bJAVA_HOME\b, either
+  before calling this utility, or through the special \b.env\b file (see FILES below).]
+[+?Please be aware that this utility will be dropping support of the myriad environment variables supported by Tomcat
+  installations, as documented in the \bSystem Properties\b page in the \bTomcat Configuration Reference\b – See the ENVIRONMENT
+  VARIABLES section below.]
+[+MULTIPLE INSTANCES?In some circumstances, it is desirable to have a single copy of a Tomcat binary distribution shared among
+  multiple users on the same server. This is where the \b--base\b option comes into action; this is achieved, by assigning
+  difference directories to \b--home=$home\b and \b--base=$base\b.]
+[+Home directory (--home=$home)?Shared resources for all instances]{
+  [+.env?Global environment customisations.]
+  [bin?This \btomcat\b script and the required bootstraping jars (\bbootstrap.jar\b, \btomcat-juli.jar\b).]
+  [lib?Essential libraries and classes.]
+  [endorsed?Libraries that override \bstandard libraries\b provided by JRE. See the \b--endorsed\b option and the \bClass
+    loading\b documentation in the \bUser Guide\b for details. By default this directory is absent.]}
+[+Base directory (--base=$base)?The \b$base\b directory will hold the \bcustom\b (or \bpersonal\b) files, split as follows:]{
+  [+.env?Custom environment customisations; these are read after those in the \b$home/.env\b file.]
+  [+bin?Only the following files:]{
+    [tomcat-juli.jar?documented in the Logging chapter in the User Guide.]}
+  [+conf?Server configuration files (including \bserver.xml\b).]
+  [+lib?Custom or specific libraries and classes. Libraries and classes in \b$home/lib\b and in \b$base/lib\b will both be added
+    to the common classpath, but the ones in \b$base\b will be added first and thus will be searched first. This allows to have
+    the standard Tomcat libraries in \bhome/lib\b and add other ones, such as database drivers, into \b$base/lib\b.]
+  [+?In general it is advised to never share libraries between web applications, but put them into \bWEB-INF/lib\b directories
+    inside the applications. See the \bClass loading\b documentation in the \bUser Guide\b for details.]
+  [+logs?Log and output files.]
+  [+webapps?Automatically loaded web applications.]
+  [+work?Temporary working directories for web applications.]
+  [+temp?Directory used by the JVM for temporary files (java.io.tmpdir).]}
+[+$home vs $base?It might be useful to note that the values of \b$home\b and \b$base\b can be referenced in the XML configuration
+files processed by Tomcat as \b${catalina.home}\b and \b${catalina.base}\b respectively. For example, the standard manager web
+application can be kept in \bCATALINA_HOME/webapps/manager\b and loaded into \b$base\b by using the following trick:]{
+        [1.?Copy the \bCATALINA_HOME/webapps/manager/META-INF/context.xml\b file as \b$base/conf/Catalina/localhost/manager.xml\b]
+        [2.?Add docBase attribute as shown below.]}
+    [+?The file will look like the following:]{
+        [+?<?xml version="1.0" encoding="UTF-8"?>]
+        [+?<Context docBase="${catalina.home}/webapps/manager" antiResourceLocking="false" privileged="true" >]
+        [+?<Valve className="org.apache.catalina.valves.RemoteAddrValve" allow="127\.0\.0\.1" />]
+        [+?</Context>]}
+    [+?See Deployer chapter in User Guide and Context and Host chapters in the Configuration Reference for more information
+        on contexts and web application deployment.]
+[+ENVIRONMENT VARIABLES?This utility was written with, amongst other objectives, the goal of getting rid of all those environment
+variables that are used to configure traditional Tomcat environments and replace them with command line options. This utility
+implements all such command line options, but also supports, for backward compatibility, the full set of environment variables
+used in the various shell scripts that are delivered with the Tomcat software.]
+[+?Amongst these variables are those which pertain to Java and which are commonly used, regardless of Tomcat. Except for the
+\bJAVA_MAJOR\b environment variable specially carved for this utility. These variables will not be deprecated, and will be fully
+supported in future versions of this utility.]{
+  [+CLASSPATH               (See option \b--classpath\b)]
+  [+JAVA_MAJOR              (See option \b--java\b)]
+  [+JAVA_HOME               (See option \b--java-home\b)]
+  [+JAVA_OPTS               (See option \b--java-opts\b)]
+  [+JRE_HOME                (See option \b--jre-home\b)]
+  [+JSSE_OPTS               (See option \b--jsse\b)]
+}
+[+?The following environment variables should be considered deprecated even though they are still honoured by this script.
+Please be aware that, in a subsequent minor or major update, their support may be dropped entirely.]{
+  [+CATALINA_BASE           (See option \b--base\b)]
+  [+CATALINA_HOME           (See option \b--home\b)]
+  [+CATALINA_OPTS           (See option \b--options\b)]
+  [+CATALINA_OUT            (See option \b--out\b)]
+  [+CATALINA_OUT_CMD        (See option \b--pipe\b)]
+  [+CATALINA_LOGGING_CONFIG (See option \b--log-config\b)]
+  [+CATALINA_PID            (See option \b--pid-file\b)]
+  [+CATALINA_TMPDIR         (See option \b--tmpdir\b)]
+  [+CATALINA_SETENV         (See FILES below and the \b.env\b file)]
+  [+JAVA_ENDORSED_DIRS      (See option \b--endorsed\b)]
+  [+JPDA_ADDRESS            (See option \b--jpda-address\b)]
+  [+JPDA_OPTS               (See option \b--jdpa-opts\b)]
+  [+JPDA_SUSPEND            (See option \b--jpda-suspend\b)]
+  [+JPDA_TRANSPORT          (See option \b--jpda-transport\b)]
+  [+LOGGING_CONFIG          (See option \b--log-config\b)]
+  [+LOGGING_MANAGER         (See option \b--log-manager\b)]
+}
+[+FILES?This script primarily uses command line options to configure its execution. However it allows to setup the environment
+through the use of a file named \b.env\b which can be located either in the global directory indicated by the \b--home\b option
+or in a particular instance\'s location provided through the \b--base\b option. If the file exists in both locations, the global
+file will be sourced first. This file is a regular KornShell script that will be source by this utility as part of its
+initialisation phase; it is typically used to set Java-related environment variables.]
+[+REQUIREMENTS]
+[+Apache Tomcat 7.0?Requires a Java Standard Edition Runtime Environment (JRE) version 6 or later. It can be downloaded from
+  http://www.oracle.com/technetwork/java/javase/downloads/index.html, except for macOS where it should be downloaded from
+  http://java.com (the latter only provides a GUI-only installation). You may also use a full Java Development Kit (JDK) rather
+  than just a JRE.]
+[+PORTABILITY?While conventional installations of Tomcat support platforms \bWindows\b and \bOS/400\b, this utility does not. The
+gold master is developed on \bmacOS\b and production environments run on \bCentOS\b and \bAmazon Linux\b.]
+[+TROUBLESHOOTING]
+[+Port 8080 already claimed?Default HTTP port that Tomcat attempts to bind to at startup. Change this in \bconf/server.xml\b of
+the \b--home\b directory (port number must be greater than 1024).]
+[+Localhost not found?You are most probably behind a proxy; configure your browser accordingly.]
+[+SEE ALSO?Apache Tomcat documentation]{
+[+Installing Apache Tomcat (http:://tomcat)apache.org/tomcat-7.0-doc/setup.html)]
+[+APR/Native library (http:://tomcat)apache.org/tomcat-7.0-doc/apr.html)]
+[+HTTP protocol connectors (http:://tomcat)apache.org/tomcat-7.0-doc/config/http.html)]
+[+AJP protocol connectors (http:://tomcat)apache.org/tomcat-7.0-doc/config/ajp.html)]
+[+Apache Tomcat Native project home (http:://tomcat)apache.org/native-doc/)]}
+[+?Other projects]{
+[+OpenSSL (http:://openssl.org)]
+[+Apache Portable Runtime (http:://apr.apache.org)]
+[+Apache HTTP Server (http:://httpd.apache.org)]
+[+Apache Commons Daemon project (http:://commons.apache.org/daemon)]}'
+fi
+
+tomcat_mkusage() {;}
+
+# __END__

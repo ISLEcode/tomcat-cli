@@ -1,0 +1,26 @@
+#! ksh
+#! @revision 2021-08-17 (Tue) 07:00:40
+#! @brief    Delete PID file
+#! @warning  This is a low-level function which assumes all clearance tests have been done upfront
+
+function tomcat_delpidf { # [qualifier]
+
+    # Collect command line options if any
+    typeset qualifier="${1:+$1 }"
+
+    # Determine name and path of PID file
+    typeset pidf=${rc.tomcat.pidf}; [[ -n $pidf ]] || clog +fatal 'Cannot delete undefined PID file!'
+
+    # Ignore command if performing a dry run
+    (( rc.opts.dryrun == true )) && { clog +info "Delete %sPID file [dryrun]" "$qualifier"; return 0; }
+
+    # Enact the requested file deletion
+    rm -f "$pidf" >/dev/null 2>&1 || cp /dev/null "$pidf" >/dev/null 2>&1; errcode=$?
+    (( errcode > 0 )) &&
+    clog +error "${pidf##*/}: failed to remove %sPID file" "$qualifier" ||
+    clog +info  "Removed %sPID file" "$qualifier"
+
+
+}
+
+# __END__

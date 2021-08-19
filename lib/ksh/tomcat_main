@@ -1,0 +1,35 @@
+#! ksh
+
+function tomcat_main {
+
+    # Collect command to enact and make sure it is supported
+    typeset exec=${rc.opts.command} pidf=${rc.tomcat.pidf};
+    [[ $exec == @(backup|changelog|check|envs|readme|restart|run|start|status|stop|update|version|view?(-)logs) ]] ||
+    clog +abort "$exec: unsupported command!"; exec=${exec//-/}
+
+    # Display splash screen flushed left
+    (( rc.opts.splash == true )) && tomcat_splash 0 0 16
+
+    # Configure runtime environment where necessary
+    [[ $exec == @(changelog|envs|readme) ]] || tomcat_config
+
+    # Populate the command line shadown variable
+    if (( rc.prog.isbatch == false )); then
+        nameref cli=rc.prog.clishadow; cli+=" --home=${rc.tomcat.home} --base=${rc.tomcat.base} --temp=${rc.tomcat.temp}"
+        (( rc.opts.debug == true )) && cli+=" --java-home=${rc.java.home}" || cli+=" --jre-home=${rc.java.runp}"
+        [[ -n ${rc.tomcat.pidf}  ]] && cli+=" --pid-file=${rc.tomcat.pidf}"
+        [[ -n ${rc.java.path}    ]] && cli+=" --classpath=${rc.java.path}"
+        clog +trace "$cli"
+    fi
+
+    # Enact the requested command
+    case $exec in
+    changelog)  view_changelog ${rc.prog.topdir}/ChangeLog ;;
+    readme)     view_readme    ${rc.prog.topdir}/README.md ;;
+    run)        tomcat_start "$@" ;;
+    *)          tomcat_$exec "$@" ;;
+    esac
+
+}
+
+# __END__

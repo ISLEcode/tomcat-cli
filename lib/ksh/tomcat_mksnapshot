@@ -1,0 +1,25 @@
+#! ksh
+#! @revision 2021-08-18 (Wed) 12:11:58
+#! @brief    Make a snapshot of essential files in --home and --base
+
+function tomcat_mksnapshot {
+    return
+
+typeset CATALINA_HOME=/mnt2/smw/tomcat6-gp
+typeset BACKUP_DIR=/mnt2/backup/saminfo/software
+typeset SNAPSHOT_DIR=/mnt2/backup/saminfo/snapshots
+typeset WATCH_DIR=/mnt2/install/saminfo/software
+typeset WAR_NAME=GestionProjet.war
+
+    typeset -n archive=$1
+    typeset -n rc=$2
+
+    # Now make a backup of the core folders in Tomcat in case we need to do a rollback
+    typeset -l timestamp=$(date +"obase=16;%s" | bc  | sed  's/\(....\)\(....\)/\1-\2/g')
+    archive=$SNAPSHOT_DIR/$(basename $CATALINA_HOME)-$timestamp.tgz
+
+    (cd $CATALINA_DIR && tar zcf $archive conf logs webapps; rc=$?)
+
+}
+
+# __END__

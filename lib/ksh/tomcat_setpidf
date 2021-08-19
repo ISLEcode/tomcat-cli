@@ -1,0 +1,27 @@
+#! ksh
+#! @revision 2021-08-17 (Tue) 07:26:29
+#! @brief    Create a PID file and populate it with runtime information
+
+function tomcat_setpidf { # cmd [pid] [pidf]
+
+    # Collect command line arguments and assign defaults
+    [[ ${1:0:1} == @ ]] && nameref cmd=${1:1} || typeset cmd="$1"; integer pid=$2; typeset pidf=${3:-${rc.tomcat.pidf}}
+
+    # Make sure we have defined a path for the PID file (this would be a programmer's error)
+    [[ -z $pidf ]] && clog +abort "Houston, we\'ve had a problem: no PID file has been defined."
+
+    # Generate the PID file
+    (   print  -- $pid
+        printf '# %T\n'
+        print  '# WARNING This is an automatically generated file; please DO NOT edit it directly.'
+        print  "COMMAND=${cmd:-${rc.prog.name}}"
+        set | grep '^CLASSPATH='
+        set | grep '^CATALINA'
+        set | grep '^JAVA'
+        print  "RC=$(print -v rc)"
+        print '# __END__'
+    )   > $pidf || clog +fatal "${pidf##*/}: failed to create file for PID $pid."
+
+}
+
+# __END__

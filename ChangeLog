@@ -1,0 +1,45 @@
+revision  : 2021-08-18 (Wed) 13:00:11
+title     : Change log for the Tomcat command line interface utility
+# - date  : !!wip
+#   edit  : Changes made to existing code
+#   more  : Additions
+#   less  : Deletions
+#   todo  : Things to plan and get done
+changelog :
+
+  - date  : 2021-08-18 (Wed) 13:00:11 !!wip
+    todo  : |
+            - We should keep track of the environment used to *start* the Tomcat server so that *stop* and *status* commands
+              could be run and automatically reuse the last environment if none provided with `--env`. We should also include a
+              port option to allow each environment to have a dedicated port (or possibly set of ports).
+            - Perhaps we should also keep track somewhere of all jarball dependencies, and merge their management with that of
+              *PATinfo/sam-tomcat*
+
+  - date  : 2021-08-17
+    notes : Added `envs`, `changelog`, and `readme` commands.
+    todo  : |
+            - Іncorporate fn *view_changelog* into AIT as a universal `git-clog` utility
+            - Likewise for fn *view_readme*, as perhaps a Git-aware `git-readme` utility
+            - Fn *clog* and AIT fn *inform* should be merged
+              - The former's `step-*` targets should be implemented in the latter
+              - The former uses `croak-`, the latter `--force`... choose or combine
+              - We should have a *lite* version of fn *inform* that has no AIT dependencies
+
+  - date  : 2021-08-16
+    notes : Adapted code to support TomEE and other Java JDK/JRE versions
+
+  - date  : 2021-08-15
+    notes : Initial version (based on Tomcat 6 and Java 6)
+    todo  : |
+            - Fn *tomcat_cleanup*: cleanup directories ~/work ~/conf/Catalina ... ~/tmp/*
+            - Fn *tomcat_install*: this needs to be implemented
+            - Fn *tomcat_check*: this needs to be further tested and consolidated
+            - Fn *tomcat_mkjavacmd*:
+              1. Blindly copied code; need to understand its purpose
+            - Fn *tomcat_mksnapshot*: this needs to be implemented
+            - Fn *tomcat_mkusage*: --??api, --??html, --??nroff don't work, why?
+            - Fn *tomcat_start*:
+              1. Add support for `--pipe` option when scanning the log file for server startup message
+            - Fn *tomcat_update*: This needs to be implemented
+
+# vim: et fdm=indent sw=4 syn=yaml

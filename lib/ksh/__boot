@@ -1,0 +1,37 @@
+#! ksh
+#! @revision 2021-08-18 (Wed) 00:27:12
+#! @brief    Universal and compact bootstrapping code with no AIT dependencies for standalone utilities. DO NOT MODIFY.
+#!
+#! Sample output:
+#! ```
+#! rc=(
+#!   ait=( boolean enabled=false )
+#!   prog=(
+#!       clishadow=tomcat
+#!       fpath=$topdir/lib/ksh
+#!       boolean isbatch=false
+#!       name=tomcat
+#!       path=$topdir/bin
+#!       revision='2021-08-12 (Thu) 17:21:22'
+#!       topdir=$topdir
+#!       version=1.2.1
+#!   )
+#!   tty=(
+#!       boolean ansi=true
+#!       dev=/dev/ttys002
+#!       boolean enabled=false
+#!   )
+#!   unix=( typeset -l name=macos )
+#! )
+#! ```
+
+[[ -z ${.sh.type.boolean} ]] && enum boolean=(false true); compound rc=(prog=(clishadow=$n name=$n path=$p topdir=${p%/*}))
+p=${rc.prog.topdir}; n=$p/.${n}rc; [[ -f $n ]] && . $n; boolean rc.prog.isbatch=true; [[ $- == *i* || -t 0 ]] &&
+rc.prog.isbatch=false; p=$p/lib/ksh; [[ -d $p ]] && { FPATH+=${FPATH:+:}$p rc.prog.fpath=$p; export FPATH; }
+rc.prog.revision=$(grep '#![[:space:]]*@revision' $0 | sed 's/.*@revision[[:space:]]*//')
+rc.prog.version=$(grep '#![[:space:]]*@version'  $0 | sed 's/.*@version[[:space:]]*//')
+typeset -l rc.unix.name=$(uname -s | sed 's/Darwin/macOS/'); boolean rc.ait.enabled=false
+boolean rc.tty.enabled=false; n=$(tty); [[ n == 'not a tty' ]] && rc.tty.enabled=false || rc.tty.dev=$n
+boolean rc.tty.ansi=false;    n=$(tput -T$TERM colors); (( n > 8 )) && rc.tty.ansi=true; unset b n p version
+
+# __END__

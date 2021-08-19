@@ -1,0 +1,86 @@
+#! ksh
+#! @revision 2021-08-18 (Wed) 12:07:00
+#! @brief    Get latest version and automagically update server software
+
+function tomcat_update {
+    return;
+
+    clog +abort 'The update functionality is not yet implemented. It will downloads SAMinfo WAR files from GitHub.'
+
+    typeset mask=saminfo-gp
+    typeset path=$WATCH_DIR
+
+    # Determine if we have any pending update (or updates)
+    typeset -i count=$(ls -1tr $path/$mask*.war 2>/dev/null| wc -l | awk '{print $1}')
+
+    # None found... cool, less to do :-)
+    if [[ $count -eq 0 ]]; then
+        logger -s "INFO: (Dragonfly $(date)) No updates pending."
+        return
+    fi
+
+    # Collect the name of the update (or the updates)
+    typeset update=$(cd $path && ls -1tr $mask*.war)
+
+    # If we have more than one update, we will use the one last "touched"
+    if [[ $count -gt 1 ]]; then
+        logger -s "WARN: (Dragonfly $(date)) Multiple updates found ($count): $(echo $update)"
+        update=$(cd $path && ls -1tr $mask*.war | tail -1)
+        logger -s "INFO: (Dragonfly $(date)) Assuming the most recent: $update"
+    else
+        logger -s "INFO: (Dragonfly $(date)) Found an update: $update"
+    fi
+
+    # Create a local directory where we will unpack the WAR file
+    mkdir $path/unpack 2>/dev/null; status=$?
+    if [[ $status -gt 0 ]]; then
+        logger -s "FATAL: (Dragonfly $(date)) Failed to create the spooling directory. Aborting."
+        return
+    fi
+
+    # Proceed with the unpacking of the WAR file
+    logger -s "INFO: (Dragonfly $(date)) Unpacking WAR file"
+    (cd $path/unpack && unzip $path/$update >/dev/null; status=$?)
+    if [[ $status -gt 0 ]]; then
+        logger -s "FATAL: (Dragonfly $(date)) Failed to unpack the update. Aborting."
+        return
+    fi
+
+    # Patch the files for the passwords
+    logger -s "INFO (Dragonfly $(date)) Patching the files for correct system account (gp_dba)"
+    (cd $path/unpack/META-INF \
+     && mv context.xml context.old \
+     && cat context.old | sed 's/username="root"/username="gp_dba"/' > context.xml \
+     && rm context.old)
+    (cd $path/unpack/WEB-INF \
+     && mv web.xml web.old \
+     && cat web.old | sed 's#<param-value>root</param-value>#<param-value>gp_dba</param-value>#' > web.xml \
+     && rm web.old)
+
+    # Reassemble the WAR file
+    typeset war=$(basename $update .war)-patched.war
+    logger -s "INFO (Dragonfly $(date)) Reassembling the WAR file ($war)"
+    (cd $path/unpack && jar -cvf $path/$war * >/dev/null)
+
+    # Cleanup the unpacked files
+    # logger -s "INFO (Dragonfly $(date)) Cleaning up the unpacking zone"
+    # (cd $path && rm -rf unpack)
+
+    # Place file in production
+    # logger -s "INFO (Dragonfly $(date)) Placing update in production for next reboot"
+    # cp $path/$war $CATALINA_HOME/webapps/$WAR_NAME
+
+    # If application was previously deployed, replace it
+    logger -s "INFO (Dragonfly $(date)) Deploying Tomcat webapp $webapp"
+    typeset webapp=$(basename $WAR_NAME .war)
+    if [[ -d $CATALINA_HOME/webapps/$webapp ]]; then rm -rf $CATALINA_HOME/webapps/$webapp; fi
+    mv $path/unpack $CATALINA_HOME/webapps/$webapp
+
+
+    # Copy update to archives
+    logger -s "INFO (Dragonfly $(date)) Making backup copy of update"
+    mv $path/$war $BACKUP_DIR
+
+}
+
+# __END__

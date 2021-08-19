@@ -1,0 +1,61 @@
+#! ksh
+
+function clog { # [+level] message ...
+
+    typeset -SA format=(
+            [ok]='\E[2m → \E[0;32m success \E[0m %s'
+          [info]='\E[2m → \E[0;34m info    \E[0m %s'
+          [pass]='\E[2m → \E[0;32m success \E[0m %s'
+          [warn]='\E[2m → \E[0;35m warning \E[0m %s'
+         [error]='\E[2m → \E[0;31m error   \E[0m %s'
+        [noexec]='\E[2m → \E[31m noexec   \E[0m %s'
+         [abort]='\E[2m → \E[0;31m abort   \E[0m %s'
+         [fatal]='\E[2m → \E[0;31m fatal   \E[0m %s'
+         [trace]='\E[2m →  trace   %s\E[0m'
+         [plain]='\E[2m → \E[0m          %s'
+       [heading]=( '\E[1;33m' )
+        [target]='  \E[0;32m%25s\E[0;2m →\E[0m %s'
+[target-heading]='                              \E[1;35m%s\E[0m'
+     [step-fail]='\E[2m[\E[0;31m✗\E[0;2m]\E[0;31m error   \E[0m %s'
+     [step-pass]='\E[2m[\E[0;32m✓\E[0;2m]\E[0;32m success \E[0m %s'
+     [step-warn]='\E[2m[\E[0;35m!\E[0;2m]\E[0;35m warning \E[0m %s'
+    )
+
+    # Collect the name of the format to enable (if none provided we'll default to `plain` subsequently)
+    typeset -l prefix=plain; [[ ${1:0:1} == + ]] && { prefix=${1:1}; shift; };
+
+    integer verbosity=${rc.opts.verbosity:-0}
+      if (( verbosity >= 0 )) && [[ $prefix == @(abort|croak-*|fatal|noexec)                   ]]; then :
+    elif (( verbosity >= 1 )) && [[ $prefix == @(error|step-fail)                              ]]; then :
+    elif (( verbosity >= 2 )) && [[ $prefix == @(warn|step-warn)                               ]]; then :
+    elif (( verbosity >= 3 )) && [[ $prefix == @(heading|info|ok|pass|plain|step-info|target*) ]]; then :
+    elif (( verbosity >= 4 )) && [[ $prefix == @(debug|trace) ]];                                  then :
+    else return; fi
+
+    # The croak prefix is just to ensure that we will always display the associated message
+    [[ $prefix == croak-* ]] && prefix=${prefix#*-}
+
+    # Special prefix used to render all supported formats
+    [[ $prefix == colour-test ]] && #
+    { for i in {0..7}; do print "\E[3${i}mColour 3$i \E[1mbold \E[0;3${i};2mlight\E[0m"; done; return 0; }
+
+    # Collect the `printf(1)` format string (or used `plain` as the default, if prefix is invalid or null)
+    typeset message="${format[${prefix:-plain}]}"; [[ -n $message ]] || message="${format[plain]}"
+
+    # Consider the first passed message string to also be a format string, so concatenate it
+    [[ $prefix == target || ( $prefix == noexec && ${1:0:1} == @ ) ]] || { message="${message/\%s/$1}"; shift; }
+
+    # We're ready to output the message, so do so now
+    if [[ $prefix == noexec && -n $1 && ${1:0:1} == @ ]]; then
+        nameref cmd=${1:1}; shift
+        print -u2 -f "$message"; print -v cmd
+    else
+        print -u2 -f "$message\n" "$@"
+    fi
+
+    # Provid syntax sugar for messages which should terminate program execution
+    [[ $prefix == @(abort|fatal|step-fail) ]] && exit 1
+
+}
+
+# __END__

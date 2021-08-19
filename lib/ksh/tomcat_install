@@ -1,0 +1,72 @@
+#! ksh
+
+function tomcat_install {
+    return;
+
+    # source:  http://repo.maven.apache.org/maven2/org/apache/openejb/openejb/4.7.4/openejb-source-release-4.7.4.zip
+    typeset -S CATALINA_BASEURL="http://repo.maven.apache.org/maven2/org/apache/openejb"
+    typeset -S base_url="$CATALINA_BASEURL/apache-tomee"
+    integer dont_move=0
+    typeset tmpdir=$(mktemp 2>/dev/null || print /tmp/install$$)
+
+    # Make sure we know where to install the installed product
+    [[ -n ${rc.tomcat.home} ]] ||
+    clog +abort 'Please specify an installation directory with the \E[33m--home\E[0m option.'
+
+    # Make sure we don't overwrite the *local* installation (if any)
+    [[ ${rc.tomcat.home} == ${rc.prog.topdir} ]] &&
+    clog +abort "%s: reserved location. Please provide an alternate installation path with the \E[33m--home\E[0m option."
+
+    # Determine installation prefix (à la GNU) and make sure the target directory exists
+    typeset prefix=${rc.tomcat.home}; [[ -d $prefix ]] || mkdir -p $prefix
+
+    # Deternine the Tomcat version we have been requested to install
+    typeset version${CATALINA_BUILDSPEC:-1.7.4}
+
+    case ${CATALINA_BUILDSPEC:-1.7.4} in
+    [0-9]*.[0-9]*.[0-9]*)   version=$CATALINA_BUILDSPEC         ;;
+    http*)                  url=$CATALINA_BUILDSPEC             ;;
+    */*)                    version=${CATALINA_BUILDSPEC##*/}
+                            distrib=${CATALINA_BUILDSPEC%/*}    ;;
+    esac
+
+    [[ -n $version ]] && have_version=1 || version=1.7.4
+    [[ -n $distrib ]] && have_distrib=1 || distrib=plume
+    [[ -n $url     ]] || url="$base_url/$version/apache-tomee-$version-$distrib.tar.gz"
+
+    typeset tar=${url##*/};
+
+    [[ -f $tar ]] || curl -sSLO $url 2>/dev/null; RC=$?
+
+    typeset dir=$(tar tvf $tar | head -1 | sed 's/.* //g;s/\/$//;s/\/.*//g')
+
+    [[ -d $dir ]] || tar xf $tar
+
+    typeset daemonbin=$PROGPATH/${PROGNAME%ctl}d
+    typeset daemontar=$dir/bin/commons-daemon-native.tar.gz
+
+    [[ ! -f $daemonbin && -f $daemontar ]] && {
+        typeset daemondir=$(tar tvf $daemontar | head -1 | sed 's/.* //g;s/\/$//;s/\/.*//g')
+        [[ -d $daemondir ]] || tar xf $daemontar
+        (cd $daemondir/unix; CFLAGS=-m64 LDFLAGS=-m64 ./configure && make)
+        [[ -f $daemondir/unix/jsvc ]] && mv $daemondir/unix/jsvc $daemonbin
+        rm -rf $daemondir
+
+    }
+
+    # Strip entire contents of the `bin` subdirectory except the jarballs
+    typeset files=$(command ls -1 $dir/bin | grep -v '\.jar$')
+    [[ -n $files ]] && (cd $dir/bin && rm -f $files)
+
+    # We're done... install all this in the target directory
+    (cd $dir; tar cf - * | (cd $prefix; tar xf -)) && rm -rf $dir
+
+    (( dont_move == 1 )) || cp ${rc.prog.path}/${rc.prog.name} $daemonbin $prefix/bin/ 2>/dev/null
+
+    print $RC
+
+    return 0
+
+}
+
+# __END__

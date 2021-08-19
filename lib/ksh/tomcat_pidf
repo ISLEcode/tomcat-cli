@@ -1,0 +1,47 @@
+#! ksh
+#! @revision 2021-08-17 (Tue) 07:08:52
+#! @brief    Frontend to facilitate handling of PID files and their contents
+
+function tomcat_pidf { # tomcat_pidctl @(create|remove|verify)
+
+    tomcat_getpidf
+
+    # Collect command line arguments and assign defaults
+    typeset cmd=${1:-verify}; [[ -n $1 ]] && shift; case $cmd in
+        create)
+
+            # If we have a running process, abort creation
+            (( rc.tomcat.pid.running == true )) && clog +abort "Tomcat is already running with process id ${rc.tomcat.pid.id}"
+
+            # If we have a PID file, remove it
+            (( rc.tomcat.pid.file == PIDF_NOTFOUND )) ||
+            { tomcat_delpidf; clog +info "Removed stale/invalid PID file (state: ${rc.tomcat.pid.file})"; }
+
+            # Generate the PID file
+            tomcat_setpidf "$@"
+
+            ;;
+        remove)
+            # Warning: stopping the running process is the caller's responsibility
+
+            # Remove the PID file
+            tomcat_delpidf
+
+            ;;
+        verify)
+            (( rc.tomcat.pid.running == true )) && return 0 || return 1
+
+            # Assert that we have a PID file
+            if (( rc.tomcat.pid.running == true )); then
+                (( rc.tomcat.pid.file != PIDF_FOUND )) || clog +error 'Process is running without a PID file!'
+                return 0
+            else
+                (( rc.tomcat.pid.file != PIDF_NOTFOUND )) || clog +error 'Process is not running but we have a PID file!'
+                return 1
+            fi
+            ;;
+    esac
+
+}
+
+# __END__

@@ -1,0 +1,59 @@
+#! ksh
+
+function tomcat_start {
+    typeset exec=${rc.opts.command} pidf=${rc.tomcat.pidf}
+
+    # Notify user of what we are about to do
+    typeset info='Attempting to start Tomcat'
+    (( rc.tomcat.secu == true )) && info+=', using the security manager'
+    (( rc.opts.debug  == true )) && info+=', in debug mode'
+    clog +info "$info."
+
+    # We never *start* the server in debug mode (no need to inform user, pretty obvious)
+    [[ ${rc.opts.debug} == true && exec == start ]] && exec=run
+
+    # Rotate (or zap) log file(s)
+    tomcat_cleanup; tomcat_rotate
+
+    # Start construction the command that will be executed on the command line
+    typeset cmd; tomcat_mkjavacmd @cmd "$@"
+
+    if [[ $exec == start ]] then
+
+        # If we have a running process, abort creation
+        tomcat_getpidf
+        (( rc.tomcat.pid.running == true )) && clog +abort "Tomcat is already running with process id ${rc.tomcat.pid.id}"
+
+        # If we have a PID file, remove it
+        (( rc.tomcat.pid.file == PIDF_NOTFOUND )) || tomcat_delpidf stale
+
+        # We're done if in dry run mode
+        (( rc.opts.dryrun == true )) && { clog +noexec 'Launching Tomcat server.'; return; }
+
+        # Enact the constructed Java command and create the PID file for this new process
+        { $cmd >> ${rc.tomcat.clog} 2>&1 & ; integer pid=$!; } && tomcat_setpidf @cmd $pid ||
+        clog +abort 'An error occured when trying to launch Tomcat.';
+
+        # Wait until we see the server startup message in the log file
+        # TODO #1 This will fail if we are using the --pipe option
+        clog +croak-info 'Waiting for Tomcat server to be up and running'
+        integer startup=0 count=0; until (( startup > 0 || count > 60 )); do
+            # WARNING: only works if logs are rotated on each start
+            startup=$(grep 'INFO.* Server startup in ' ${rc.tomcat.clog} | sed 's/^.*Server startup in//; s/[^0-9]//g')
+            (( ++ count ))
+            sleep 0.5
+        done
+
+        # We're done
+        if (( startup > 0 ))
+        then clog +croak-step-pass "Successfully launched Tomcat server (pid #$!) in $startup ms."
+        else clog +croak-step-fail "Failed to launch a Tomcat server; tried $count times."; fi
+
+    else
+        # Enact the constructed command
+        $cmd || clog +abort "An error occured when trying to launch Tomcat\n\n$cmd"
+    fi
+
+}
+
+# __END__

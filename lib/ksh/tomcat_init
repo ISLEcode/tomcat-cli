@@ -1,0 +1,17 @@
+#! ksh
+#! @revision 2021-08-18 (Wed) 07:09:00
+#! @brief    Initialisation, prior to command line interface handling
+
+function tomcat_init {
+
+    # Assign defaults
+    rc.opts=(
+        boolean colours=true debug=false dryrun=false force=false nohup=false splash=true
+        integer verbosity=0
+    )
+    rc.jpda=( boolean enabled=false )
+    rc.tomcat=( boolean secu=false zaplogs=true )
+
+}
+
+# vim: fdm=marker fmr=(,)

@@ -1,0 +1,59 @@
+#! ksh
+
+function tomcat_rotate {
+
+    # Special handling required for named pipes
+    if (( rc.tomcat.istomee == true )) && [[ -n ${rc.tomcat.cpipe} ]]; then
+        typeset fifo=${rc.tomcat.clog%.*}~
+
+        [[ -e $fifo ]] || mkfifo $fifo || clog +abort "Cannot create named pipe ${fifo##*/}."
+        [[ -p $fifo ]] || clog +fatal "${fifo##*/}: expected a named pipe, which this is not!."
+        ${rc.tomcat.cpipe} <"$fifo" &
+    fi
+
+    # If we currently have a log file, rotate it
+    if [[ -f ${rc.tomcat.clog} ]]; then
+
+        # Determine location of our Tomcat server's log files
+        typeset dir=$PWD; [[ ${rc.tomcat.clog} == */* ]] && dir=${rc.tomcat.clog%/*}
+
+        # Determine whether we should be rotatng files or deleting them
+        if (( rc.tomcat.zaplogs == true )); then
+
+            # Delete all log files in log directory
+            rm -f $dir/*.{log,out} >/dev/null 2>&1
+
+        else
+
+            # Construct the timestamp suffix to rotate files
+            typeset suffix; [[ ${rc.unix.name} == macos ]] &&
+            suffix=$(date -r $(stat -f "%m" ${rc.tomcat.clog}) +%Y%m%d-%H%M) ||
+            suffix=$(date -r ${rc.tomcat.clog} +%Y%m%d-%H%M)
+
+            # Process all log files in the logs directory
+            typeset source; for source in $(tomcat_logfiles); do
+
+                # Construct the target file name
+                typeset target=${source##*/}; target=$dir/${target/./-$suffix.}
+
+                # Rotate the log file
+                if [[ -f $target ]]; then
+                    cat $source >> $target || clog +abort "${target##*/}: failed to append current log to this file."
+                    rm  $source            || clog +abort "$source: failed to remove current log file."
+                else
+                    mv  $source    $target || clog +abort "${target##*/}: failed to rename current log to this file."
+                fi
+
+            done
+
+        fi
+
+    fi
+
+    # Make sure our log file exists, even if empty
+    [[ ! -f ${rc.tomcat.clog} ]] &&
+    { touch ${rc.tomcat.clog} || clog +abort "${rc.tomcat.clog##*/}: failed to create log file."; }
+
+}
+
+# __END__

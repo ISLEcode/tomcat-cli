@@ -1,0 +1,22 @@
+#! ksh
+
+function tomcat_version {
+
+    # Output the banner contained in this utility's main script (unless splash screen is enabled)
+    (( rc.opts.splash == true )) ||
+    { printf '\E[2m'; grep '#' ${rc.prog.path}/${rc.prog.name} | grep -v '#[! ]' | sed 's/^#//'; printf '\E[0m\n'; }
+
+    # Construct the Java command to output the Tomcat server's main characteristics
+    typeset cmd="${rc.java.runp}/bin/java -classpath ${rc.tomcat.home}/lib/catalina.jar org.apache.catalina.util.ServerInfo"
+
+    # Don't enact the command if we are in dry-run mode
+    (( rc.opts.dryrun == true )) &&
+    { clog +croak-info 'The following command would have been enacted:'; clog +noexec @cmd; return; }
+
+    # Run the Java command and parse its output to colourise it
+    eval $cmd 2>/dev/null | while read line; do clog +croak-info "\E[2m${line/:/:$'\E[0m'}"; done
+    clog +croak-info "\E[2m%-15s\E[0m %s v%s – %s\b" "Shell utility:" ${rc.prog.name} "${rc.prog.version}" "${rc.prog.revision}"
+
+}
+
+# __END__

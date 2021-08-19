@@ -1,0 +1,19 @@
+#! ksh
+#! @revision 2021-08-18 (Wed) 08:19:38
+
+function tomcat_envs {
+    typeset dir=${rc.prog.topdir} file
+    integer cols=$(tput cols)-43
+
+    for file in $dir/.env*; do
+        typeset env=${file##*/}; [[ $env == .env ]] && env='(default)' || env=${env#*-}
+        typeset brief=$(sed -n '/^#! @brief/{s/^#! @brief[ ]*//;p;}' $file)
+        typeset revision=$(sed -n '/^#! @revision/{s/^#! @revision[ ]*//;p;}' $file)
+        printf "\E[32m%-15s\E[0m %-${cols}s\E[0;2m %s\E[0m\n" $env "$brief" "$revision"
+
+    done
+
+
+}
+
+# __END__

@@ -1,0 +1,13 @@
+#! ksh
+
+function tomcat_check {
+
+    typeset catalina=$(tomcat_mkjavacmd catalina configtest $@); $catalina &&
+    clog +step-pass "Configuration tests passed with success." ||
+    clog +step-fail "configuration errors detected."
+
+    return $RC
+
+}
+
+# __END__

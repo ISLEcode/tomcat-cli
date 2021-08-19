@@ -1,0 +1,9 @@
+#! ksh
+
+function tomcat_viewlogs {
+
+    vim -R $(tomcat_logfiles)
+
+}
+
+# __END__

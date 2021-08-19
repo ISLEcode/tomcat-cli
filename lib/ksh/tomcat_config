@@ -1,0 +1,195 @@
+#! ksh
+# Make sure all paths are absolute
+# Strip leading/trailing : in CLASSPATH
+
+function tomcat_config {
+
+    # Import the master environment, if any
+    typeset env=${rc.prog.topdir}/${rc.opts.env:-.env}; [[ -f $env ]] && . $env ||
+    clog +warn "${env##*/}: environment file not found."
+
+    # Assign essential Tomcat defaults
+    [[ -z ${rc.tomcat.home} ]] && rc.tomcat.home="${CATALINA_HOME:-${rc.prog.topdir}}"
+    [[ -z ${rc.tomcat.base} ]] && rc.tomcat.base="${CATALINA_BASE:-${rc.tomcat.home}}"
+
+    # Make sure we are in presence of a Tomcat installation
+    [[ -f ${rc.tomcat.home}/bin/bootstrap.jar && -f ${rc.tomcat.home}/lib/catalina.jar ]] ||
+    clog +abort 'Cannot detect a Tomcat installation; please use the \E[33m--home\E[0m option to specify its location'
+
+    # Determine if we are running legacy Tomcat or TomEE
+    boolean rc.tomcat.istomee=false; integer x=$(command ls ${rc.tomcat.home}/lib/tomee* 2>/dev/null | wc -l | sed 's/[^0-9]//g')
+    (( x > 0 )) && rc.tomcat.istomee=true; unset x
+
+    # Import environment(s)
+    [[ ${rc.tomcat.home} != ${rc.prog.topdir}                      && -f ${rc.tomcat.home}/.env ]] && . ${rc.tomcat.home}/.env
+    [[ ${rc.tomcat.base} != @(${rc.tomcat.home}|${rc.prog.topdir}) && -f ${rc.tomcat.base}/.env ]] && . ${rc.tomcat.base}/.env
+
+    # Assign Tomcat default options (as appropriate for SAMinfo)
+    if [[ -z ${rc.tomcat.opts} ]]; then
+        rc.tomcat.opts='-Duser.timezone=Europe/Zurich -Xmx4096m -Xms4096m'
+        (( rc.tomcat.istomee == false )) && rc.tomcat.opts+=' -XX:PermSize=512m -XX:MaxPermSize=1024m'
+    fi
+
+    # Add `bootstrap.jar` and `tomcat-juli.jar` to classpath; the latter can be overridden per instance
+    rc.java.path+=${rc.java.path:+:}${rc.tomcat.home}/bin/bootstrap.jar:
+    [[ ${rc.tomcat.base} != ${rc.tomcat.home} && -r ${rc.tomcat.base}/bin/tomcat-juli.jar ]] &&
+    rc.java.path+=${rc.tomcat.base}/bin/tomcat-juli.jar || rc.java.path+=${rc.tomcat.home}/bin/tomcat-juli.jar
+
+    # Determine locations for JDK and JRE
+    [[ -z ${rc.java.home} ]] && rc.java.home=$JAVA_HOME
+    [[ -z ${rc.java.runp} ]] && rc.java.runp=$JRE_HOME
+
+    # Make sure prerequisite environment variables are set
+    if [[ -z "${rc.java.home}${rc.java.runp}" ]]; then
+
+        if [[ ${rc.unix.name} == macos ]]; then
+              if [[ -x '/usr/libexec/java_home' ]]
+            then rc.java.home=$(/usr/libexec/java_home)
+            elif [[ -d "/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home" ]]
+            then rc.java.home="/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Home"; fi
+        else
+            typeset path; for path in $(whence java 2>/dev/null) /usr/bin/java /usr/local/bin/java; do
+                [[ -x $path ]] || continue; path=${path%/*} rc.java.runp=${path%/*}; break
+            done; unset path
+        fi
+
+        # Be pretty verbose about void options as this is a fairly common error
+        if [[ -z ${rc.java.home} && -z ${rc.java.runp} ]]; then
+            typeset info='Neither \E[33m--java-home\E[0m nor \E[33m--jre-home\E[0m have been provided.'
+            info+=' Likewise, neither, respectively, \E[33mJAVA_HOME\E[0m nor \E[33mJRE_HOME\E[0m have been defined.'
+            info+=' At least one of these options should be set. Alternatively you can set the appropriate variable manually'
+            info+=' or in an environment file (see the \E[33m--env\E[0m option).'
+            clog +fatal "$info"
+        fi
+
+    fi
+
+    # If in debug mode, make sure we are using a JDK, not a JRE
+    if (( rc.opts.debug == true )) && [[ -z ${rc.java.home} ]]; then
+        typeset info='When the debug mode has been activated (\E[33m--debug\E[0m, the option \E[33m--java-home\E[0m,'
+        info+=' or the environment variable \E[33mJAVA_HOME\E[0m, should point to a JDK'
+        clog +fatal "$info"; unset info
+    fi
+
+    [[ -z ${rc.java.runp} ]] && rc.java.runp="${rc.java.home}"
+
+    # If we're running under jdb, we need a full jdk.
+    if (( rc.opts.debug == true )); then
+        typeset bin path=${rc.java.home}/bin; integer errors=0;
+        for bin in java jdb javac; do [[ -x $path/$bin ]] || (( ++ errors )); done; (( errors > 0 )) &&
+        clog +warn '\E[33m--java-home\E[0m (or environment variable \E[33mJAVA_HOME\E[0m) should point to a JDK not a JRE!'
+        unset bin path errors
+    fi
+
+    # Determine the current Java package's major version, and assemble, if necessary, our compatibility field
+    typeset major=$(java -version 2>&1 | sed -n '1{s/[^0-9._-]//g;s/[^0-9]/./g;s/^1\.//;s/\..*$//p;}')
+    [[ -z ${rc.java.major} ]] && typeset rc.java.major=${JAVA_MAJOR:-$major}
+
+    # Make sure this is a known version of Java
+    integer max=15; (( major > max )) && clog +fatal "Java $major is not currently supported. Sorry!"
+    clog +info "Java version $major will be used for this run."
+
+    # Determine the source/target versions from our compatibility field
+    [[ ${rc.java.major} == *:* ]] &&
+    integer rc.java.source=${rc.java.major%:*} rc.java.target=${rc.java.major#*:} ||
+    integer rc.java.source=${rc.java.major}    rc.java.target=${rc.java.major}
+
+    # Make sure we have a valid Java -source version
+    (( rc.java.source > 44 )) && (( rc.java.source -= 44 )); (( rc.java.source < 6 || rc.java.source > max )) &&
+    clog +abort "Suspicious Java -source version (#${rc.java.source}); expected a number greater than 5, but less than $max!"
+
+    # Make sure we have a valid Java -target version
+    (( rc.java.target > 44 )) && (( rc.java.target -= 44 )); (( rc.java.target < 6 || rc.java.target > 20 )) &&
+    clog +abort "Suspicious Java -target version (#${rc.java.target}); expected a number greater than 5, but less than 20!"
+
+    # We're done with version checking, notify user and cleanup
+    (( rc.java.source == major && rc.java.source == rc.java.target )) || {
+        typeset info="Java $major will be run in compatibility mode for Java "
+        (( rc.java.source == rc.java.target )) && info+="${rc.java.source}." ||
+        info+="${rc.java.target}, with source code syntax in Java ${rc.java.source}."
+        clog +info "$info"
+    }; unset info major max
+
+    # Assign JPDA defaults
+    if (( rc.jpda.enabled == true )); then
+        [[ -z ${rc.jpda.addr} ]] && rc.jpda.addr=${JPDA_ADDRESS:-8000}
+        [[ -z ${rc.jpda.halt} ]] && rc.jpda.halt=${JPDA_SUSPEND:-n}
+        [[ -z ${rc.jpda.port} ]] && rc.jpda.port=${JPDA_TRANSPORT:-dt_socket}
+        [[ -z ${rc.jpda.opts} ]] && rc.jpda.opts=$JPDA_OPTS
+        [[ -z ${rc.jpda.opts} ]] && rc.jpda.opts="-agentlib:jdwp=transport=${rc.jpda.transport}" \
+                                    rc.jpda.opts+=",address=${rc.jpda.address},server=y,suspend=${rc.jpda.suspend}"
+        rc.tomcat.opts+=" ${rc.jpad.opts}"
+    fi
+
+    # JRE_HOME defaults to JAVA_HOME, unless explictely specified
+    [[ -z ${rc.java.runp} ]] && rc.java.runp=${rc.java.home}
+
+    # Declare Java endorsed directories. Note: Java 9 no longer supports the `java.endorsed.dirs` system property.
+    [[ -z ${rc.java.dirs} ]] && rc.java.dirs=$JAVA_ENDORSED_DIRS
+    [[ -z ${rc.java.dirs} && -d ${rc.tomcat.home}/endorsed ]] && rc.java.dirs=${rc.tomcat.home}/endorsed
+
+    # Determine name and path of file that holds (or will hold) the running Tomcat instance
+    [[ -z ${rc.tomcat.pidf} ]] && rc.tomcat.pidf="${CATALINA_PID:-${rc.tomcat.base}/logs/tomcat.pid}"
+
+    # Determine where Tomcat will output its console traces to STDOUT/STDERR
+    [[ -z ${rc.tomcat.clog} ]] && rc.tomcat.clog="${CATALINA_OUT:-${rc.tomcat.base}/logs/tomcat.log}"
+
+    # Setup a default logging configuration, unless one has been specified with --log-config
+    [[ -z ${rc.tomcat.lcfg} ]] && rc.tomcat.lcfg="${CATALINA_LOGGING_CONFIG:-$LOGGING_CONFIG}"
+    [[ -z ${rc.tomcat.lcfg} ]] && rc.tomcat.lcfg="-Djava.util.logging.config.file=${rc.tomcat.base}/conf/logging.properties"
+    [[ -n ${rc.tomcat.lcfg} && -r ${rc.tomcat.lcfg##*=} ]] || rc.tomcat.lcfg='-Dnop'
+
+    # Assign a default logging manager, unless one has been specified with --log-manager
+    [[ -z ${rc.tomcat.lmgr} ]] &&
+    rc.tomcat.lmgr="${LOGGING_MANAGER:--Djava.util.logging.manager=org.apache.juli.ClassLoaderLogManager}"
+
+    # Assign a directory for temporary files; make sure it exists
+    [[ -z ${rc.tomcat.temp} ]] && rc.tomcat.temp="${CATALINA_TMPDIR:-${rc.tomcat.base}/tmp}"
+
+    # Populate default java options
+    [[ -z ${rc.java.opts} ]] && rc.java.opts=$JAVA_OPTS
+
+    # Add OpenEJB Java agent
+    [[ -r ${rc.tomcat.home}/lib/openejb-javaagent.jar ]] &&
+    rc.java.opts+=" -javaagent:${rc.tomcat.home}/lib/openejb-javaagent.jar"
+
+    # Register custom URL handlers so custom URL handles (specifically 'war:...') can be used in the security policy
+    (( rc.tomcat.istomee )) && rc.java.opts+=' -Djava.protocol.handler.pkgs=org.apache.catalina.webresources'
+
+    # Add JSSE support where necessary
+    if (( rc.tomcat.istomee )); then
+        [[ -z ${rc.java.jsse} ]] && rc.java.jsse='-Djdk.tls.ephemeralDHKeySize=2048'
+        [[ -n ${rc.java.jsse} ]] && rc.java.opts+=" ${rc.java.jsse}"
+    fi
+
+    # Assign a default UNIX umask(1) for filesystem updates
+    [[ -z ${rc.tomcat.mask} ]] && rc.tomcat.mask="${CATALINA_UMASK:-0027}"
+    [[ -n ${rc.tomcat.mask} ]] && rc.java.opts+=" -Dorg.apache.catalina.security.SecurityListener.UMASK=${rc.tomcat.mask}"
+
+    # Make sure the temporary directory exists and is writable
+    [[ -d ${rc.tomcat.temp} && -w ${rc.tomcat.temp} ]] || mkdir ${rc.tomcat.temp} ||
+    clog +abord "${rc.tomcat.temp}: failed to create directory for Tomcat's temporary files."
+
+    # Assign a default period of grace when stopping Tomcat or waiting for processes to start/stop
+    [[ -z ${rc.tomcat.wait} ]] && rc.tomcat.wait=5
+
+    # If performing a dry run, make sure verbosity is set to display +info messages
+    (( rc.opts.dryrun == true && rc.opts.verbosity < 3 )) && rc.opts.verbosity=3
+
+    # Add the JAVA 9 specific start-up parameters required by Tomcat
+    (( rc.tomcat.istomee == true )) && for opt in \
+        --add-opens=java.base/java.lang=ALL-UNNAMED \
+        --add-opens=java.base/java.io=ALL-UNNAMED \
+        --add-opens=java.rmi/sun.rmi.transport=ALL-UNNAMED
+    do [[ $JDK_JAVA_OPTIONS == *$opt* ]] || JDK_JAVA_OPTIONS+=" $opt"; done; export JDK_JAVA_OPTIONS
+
+    # MacOS hack for CLASSPATH
+    if [[ ${rc.unix.name} == macos ]]; then
+        typeset jarball path=/System/Library/Frameworks/JavaVM.framework/Versions/CurrentJDK/Classes:
+        [[ -d $path ]] && for jarball in $path/*.jar; do JIKESPATH+="${JIKESPATH:+:}$jarball"; done
+        export JIKESPATH; clog +info "Setting JIKESPATH=$JIKESPATH"
+    fi
+
+}
+
+# __END__

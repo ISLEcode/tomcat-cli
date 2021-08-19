@@ -1,0 +1,16 @@
+#! ksh
+
+function view_readme {
+
+    # Collect command line arguments and make sure we have a file to process
+    typeset readme=$1; [[ -n $1 && -f $1 && -r $1 ]] || return
+
+    # Assert that we have the right tools to parse and display the change log
+    whence -q glow || clog +fatal 'Cannot locate the \E[33mglow(1)\E[0m utility.'
+
+    # We're done
+    glow $readme
+
+}
+
+# __END__

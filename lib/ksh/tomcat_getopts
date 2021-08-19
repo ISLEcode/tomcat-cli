@@ -1,0 +1,52 @@
+#! ksh
+#! @revision 2021-08-18 (Wed) 10:18:23
+#! @brief    x
+
+
+# Collect the command to execute
+[[ $1 == -* ]] || { rc.opts.command=$1; shift; }
+[[ -n ${rc.opts.command} ]] || set -- --man $@
+
+tomcat_mkusage # Construct the usage string
+
+# Process all remaining command line options
+while getopts -a "tomctl${rc.opts.command:+ ${rc.opts.command}}" "$usage" opt; do case $opt in
+    A)  typeset rc.jpda.address="$OPTARG"   ;;
+    b)  typeset rc.tomcat.base="$OPTARG"    ;;
+    c)  typeset rc.tomcat.clog="$OPTARG"    ;;
+    C)  typeset rc.java.path="$OPTARG"      ;;
+    d)  boolean rc.jpda.enabled=true        ;;
+    D)  typeset rc.jpda.opts="$OPTARG"      ;;
+    e)  typeset rc.opts.env=".env-$OPTARG"  ;;
+    E)  typeset rc.java.dirs="$OPTARG"      ;;
+    f)  boolean rc.opts.force=true          ;;
+    g)  integer rc.tomcat.wait=$OPTARG      ;;
+    h)  typeset rc.tomcat.home="$OPTARG"    ;;
+    H)  typeset rc.java.home="$OPTARG"      ;;
+    J)  typeset rc.java.runp="$OPTARG"      ;;
+    K)  typeset rc.jpda.suspend="$OPTARG"   ;;
+    l)  typeset rc.tomcat.lcfg="$OPTARG"    ;;
+    m)  typeset rc.tomcat.lmgr="$OPTARG"    ;;
+    M)  typeset rc.java.major="$OPTARG"     ;;
+    n)  typeset rc.tomcat.cpipe="$OPTARG"   ;;
+    o)  typeset rc.tomcat.opts="$OPTARG"    ;;
+    h)  typeset rc.java.opts="$OPTARG"      ;;
+    p)  typeset rc.tomcat.pidf="$OPTARG"    ;;
+    S)  typeset rc.tomcat.secu=true         ;;
+    t)  typeset rc.tomcat.temp="$OPTARG"    ;;
+    T)  typeset rc.jpda.transport="$OPTARG" ;;
+    u)  typeset rc.tomcat.mask="$OPTARG"    ;;
+    v)  (( OPTARG == 1 )) && rc.opts.verbosity=0 || (( rc.opts.verbosity ++ )) ;;
+    z)  typeset rc.tomcat.zaplogs=true      ;;
+    01) typeset rc.opts.command=version     ;;
+    02) boolean rc.opts.dryrun=true         ;;
+    03) boolean rc.prog.isbatch=$OPTARG     ;;
+    04) boolean rc.opts.colours=true        ;;
+    05) (( OPTARG == 0 )) && rc.opts.splash=false || rc.opts.splash=true ;;
+    06) boolean rc.opts.nohup=true          ;;
+    20) typeset rc.java.jsse="$OPTARG"      ;;
+esac; done; (( OPTIND > 1 )) && shift $(( OPTIND - 1 ))
+
+tomcat_getopts() {;}
+
+# __END__

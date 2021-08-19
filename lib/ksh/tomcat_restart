@@ -1,0 +1,8 @@
+#! ksh
+
+function tomcat_restart {
+    rc.opts.command=stop;  tomcat_stop
+    rc.opts.command=start; tomcat_start
+}
+
+# __END__

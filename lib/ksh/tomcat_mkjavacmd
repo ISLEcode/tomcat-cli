@@ -1,0 +1,36 @@
+#! ksh
+
+function tomcat_mkjavacmd { # [@cmd] [command]
+    boolean byref=false; [[ ${1:0:1} == @ ]] && { nameref cmd=${1:1}; shift; byref=true; } || typeset cmd
+    typeset exec=${1:-${rc.opts.command}}
+
+    # Start construction the command that will be executed on the command line
+    typeset cmd=''; [[ $exec == start ]] && (( rc.opts.nohup == true )) && cmd='nohup '
+    cmd+=${rc.java.runp}/bin/java; (( rc.opts.debug == true )) && cmd="exec ${rc.java.home}/bin/jdb"
+    [[ -n ${rc.tomcat.lcfg} ]] && cmd+=" ${rc.tomcat.lcfg}"
+    [[ -n ${rc.tomcat.lmgr} ]] && cmd+=" ${rc.tomcat.lmgr}"
+    [[ -n ${rc.java.opts}   ]] && cmd+=" ${rc.java.opts}"
+    [[ -n ${rc.tomcat.opts} ]] && cmd+=" ${rc.tomcat.opts}"
+    [[ -n ${rc.java.dirs}   ]] && cmd+=" -Djava.endorsed.dirs=${rc.java.dirs}"
+    cmd+=" -classpath ${rc.java.path}"
+
+    # TODO What's this ?
+    # (( rc.opts.debug == true )) && cmd+="-sourcepath ${rc.tomcat.home}/../../java"
+
+    # Append security manager
+    (( rc.tomcat.secu == true )) &&
+    cmd+=" -Djava.security.manager -Djava.security.policy==${rc.tomcat.base}/conf/catalina.policy}"
+
+    # Finalise command
+    cmd+=" -Dcatalina.base=${rc.tomcat.base} -Dcatalina.home=${rc.tomcat.home} -Djava.io.tmpdir=${rc.tomcat.temp}"
+    cmd+=" org.apache.catalina.startup.Bootstrap $@ $exec"
+
+    (( byref == false )) && print -v cmd
+
+    (( rc.opts.dryrun == true )) || return
+
+    clog +info "The following command would have been enacted:\n\t$cmd"
+
+}
+
+# __END__

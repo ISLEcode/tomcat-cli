@@ -1,0 +1,9 @@
+#! ksh
+
+function tomcat_backup {
+
+    clog +abort 'The backup functionality is not yet implemented. It will invoke *tomcat_mksnapshot*.'
+
+}
+
+# __END__

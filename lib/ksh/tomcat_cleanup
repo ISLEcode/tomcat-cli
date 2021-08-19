@@ -1,0 +1,7 @@
+#! ksh
+
+function tomcat_cleanup {
+    ;
+}
+
+# __END__

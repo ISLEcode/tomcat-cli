@@ -1,0 +1,41 @@
+#! ksh
+
+function tomcat_splash { # [-sleep] [x] [y] [z]
+
+    # Collect command line arguments and determine screen size
+    typeset s=0; [[ -n $1 && $1 == -+([0-9]) ]] && { s=${1#-}; shift; }
+    integer i x=$1 xmax=$(tput cols) y=$2 ymax=$(tput lines) z=$3
+
+    # Position banner on screen, unless coordinates have been provided
+    [[ -n $1 ]] || x=$(( (xmax - 80) / 2 ))
+    [[ -n $2 ]] || y=$(( (ymax -  8) / 2 ))
+    (( z > ymax - 2 )) && (( z = ymax - 2 ))
+
+    # Determine the space padding element and construct the logo
+    typeset pad=; (( x > 0 )) && $(eval "printf '%.1s' ' '{1..$x}"); typeset year=$(printf "%(%Y)T") logo=(
+        $'\E[2m────────────────────────────────────────────────────────────────────────────────\E[0m'
+        $'\E[4;33mS\E[0m y s t e m   f o r   \E[4;33mA\E[0m d m i n i s t r a t i o n   a n d   \E[4;33mM\E[0m a n a g e m e n t'
+        $''
+        $"\E[1;34m          .d8888b.        d8888 888b     d888 \E[0;34md8b           .d888 $year\E[0m"
+        $'\E[1;34m         d88P  Y88b      d88888 8888b   d8888 \E[0;34mY8P          d88P"\E[0m'
+        $'\E[1;34m         Y88b.          d88P888 88888b.d88888 \E[0;34m             888\E[0m'
+        $'\E[1;34m          "Y888b.      d88P 888 888Y88888P888 \E[0;34m888 88888b.  888888 .d88b.\E[0m'
+        $'\E[1;34m             "Y88b.   d88P  888 888 Y888P 888 \E[0;34m888 888 "88b 888   d88""88b\E[0m'
+        $'\E[1;34m               "888  d88P   888 888  Y8P  888 \E[0;34m888 888  888 888   888  888\E[0m'
+        $'\E[1;34m         Y88b  d88P d8888888888 888   "   888 \E[0;34m888 888  888 888   Y88..88P\E[0m'
+        $'\E[1;34m          "Y8888P" d88P     888 888       888 \E[0;34m888 888  888 888    "Y88P"\E[0m'
+        $''
+        $'\E[33mwww.saminfo.ch              \E[0;32misle.plus / isle-cloud.ch             \E[0;33mwww.patinfo.ch\E[0m'
+        $'\E[2m────────────────────────────────────────────────────────────────────────────────\E[0m'
+    )
+
+
+    clear; [[ -z $3 ]] && eval "printf '%.1s' $'\n'{1..$y}"
+    integer count=${#logo[@]}; for (( i = 0; i < count; ++ i )); do print "$pad${logo[i]}"; done
+    [[ -z $3 ]] && eval "printf '%.1s' $'\n'{1..$y}"
+
+    [[ -n $3 ]] && tput cup $z 0 || tput cup $(( ymax - 1 )) 0
+    (( s > 0 )) && sleep $s
+}
+
+# __END__
