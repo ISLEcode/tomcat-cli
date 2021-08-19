@@ -70,6 +70,8 @@ For the maintainer's convenience, the YAML file is maintained in reverse chronol
 
 Likewise TODO items may be attached in the YAML file to each change date; however, when displayed, they will be grouped together and displayed last.
 
+![image](https://user-images.githubusercontent.com/6306262/130110121-de29d29c-b157-44a2-a29e-f004da60e80f.png)
+
 **Important** This feature currently requires the [AIT framework][ait] and the [glow][glow] utility. It is our intent to make this utility completely indenpendant of the AIT framework. This will be achieved in a subsequent update.
 
 ## Installation
