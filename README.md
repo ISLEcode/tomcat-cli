@@ -1,6 +1,10 @@
 # Tomcat / TomEE CLI frontend
 
 - [Overview](#overview)
+- [Features](#features)
+  - [Wealth of commands](#wealth-of-commands)
+  - [Multiple execution environments](#multiple-execution-environments)
+  - [Easily manage and view YAML-based change logs](#easily-manage-and-view-yaml-based-change-logs)
 - [Installation](#installation)
 - [Documentation](#documentation)
 
