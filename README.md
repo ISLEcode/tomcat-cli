@@ -68,6 +68,8 @@ tomcat changelog
 
 For the maintainer's convenience, the YAML file is maintained in reverse chronological order so that updates are done at the top of the file; however, when displayed, the entries are presented in chronological order, for the reader's convenience.
 
+![image](https://user-images.githubusercontent.com/6306262/130110686-7e2e6cc1-9b42-4d24-85a2-42228e02d352.png)
+
 Likewise TODO items may be attached in the YAML file to each change date; however, when displayed, they will be grouped together and displayed last.
 
 ![image](https://user-images.githubusercontent.com/6306262/130110121-de29d29c-b157-44a2-a29e-f004da60e80f.png)
