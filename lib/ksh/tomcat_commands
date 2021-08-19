@@ -1,0 +1,32 @@
+#! ksh
+
+function tomcat_commands {
+
+    set -- --man; getopts -a 'tomcat COMMAND' \
+    $'[+COMMANDS?The most commonly used commands are those that enable to start and stop the Tomcat server:]{
+      [+run      ?Start Tomcat in the current terminal session.]
+      [+start    ?Start the Tomcat server as a daemon.]
+      [+stop     ?Stop the currently running Tomcat server, if any.]
+      [+status   ?Check whether a Tomcat server is currently running.]
+      [+restart  ?Start or restart a currently running Tomcat server.]}
+    [+?Other commonly used commands:]{
+      [+backup   ?Create a snapshot of essential Tomcat configuration files.]
+      [+changelog?View the Git repository\'s \bChangeLog\b file, if accessible.]
+      [+envs     ?Enumerated currently configured environments.]
+      [+readme   ?View the Git repository\'s \bREADME.md\b file, if accessible.]
+      [+update   ?Automatically download war files from GitHub and install them. Typically used to update SAMinfo.]
+      [+version  ?What version of tomcat are you running?]}
+    [+?This utility is also a practical front end to build and install TomEE distributions:]{
+      [+:build-daemon?Builds and installs the \bApache Commons Daemon\b, which provides wrappers that are used to install Apache
+        Tomcat as a daemon.]
+      [+build-libapr?Builds and installs the Apache Tomcat \bNative library\b, a library that allows to use the \bAPR\b variant
+        of \bHTTP\b and \bAJP\b protocol connectors in Apache Tomcat. It is built around \bOpenSSL\b and \bApache Portable
+        Runtime\b (APR) libraries. Those are the same libraries as used by Apache HTTPD Server project. The library is
+        enabled/disabled in the \bconf/server.xml\b configuration file through the \bAprLifecyleListener\b property.]
+      [+build-tomcat?Build Apache Tomcat from source code. This will do a full \brelease\b build and install the resulting
+        output.]
+      [+install  ?Install Apache Tomcat into the specified \b--home\b directory.]}' opt
+
+}
+
+# __END__
