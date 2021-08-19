@@ -70,6 +70,8 @@ For the maintainer's convenience, the YAML file is maintained in reverse chronol
 
 Likewise TODO items may be attached in the YAML file to each change date; however, when displayed, they will be grouped together and displayed last.
 
+**Important** This feature currently requires the [AIT framework][ait] and the [glow][glow] utility. It is our intent to make this utility completely indenpendant of the AIT framework. This will be achieved in a subsequent update.
+
 ## Installation
 
 The repository structure should be kept as is; but can be located anywhere. By convention, we place it in `/opt/tomcat-cli`:
@@ -88,3 +90,6 @@ cd /usr/local/bin; ln -s /opt/tomcat-cli/bin/tomcat .
 
 The utility offers an extensive embarked `man(1)`-page which can be accessed as `tomcat --man` or `tomcat COMMAND --man` where
 COMMAND is a support command.
+
+  [ait]: https://github.com/ISLEcode/AIT
+  [glow]: https://github.com/charmbracelet/glow
