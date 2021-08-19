@@ -1,16 +1,39 @@
 #! ksh
-#! @revision 2021-08-18 (Wed) 12:58:18
+#! @revision 2021-08-19 (Thu) 17:36:53
 #! @brief    Initialise the `getopts(1)` usage string
 
 typeset usage='[-1s1]'; usage+=$(grep '^#! @' ${rc.prog.path}/${rc.prog.name} | sed 's/^#! @/[-/; s/  */?/; s/$/]/')
 
 case ${rc.opts.command} in                                                  # Name + description
+backup)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
+    ;;
+build-*)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
+    ;;
+changelog)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
+    ;;
 envs)
     usage+=$'[+NAME?tomcat envs - Enumerate currently configured environments.]
     [+DESCRIPTION?This will enumerate the environment files (\v.env*\v) found in this utility\'s top-level directory. If the
     Doxygen tokens \v@revision\v and \v@brief\v are provided, these will be used in the enumerated list.]'
     ;;
-
+install)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
+    ;;
+readme)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
+    ;;
+run)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
+    ;;
 start)
     usage+=$'[+NAME?tomcat start - Start the Apache Tomcat server.]'
     ;;
@@ -19,6 +42,14 @@ status)
     ;;
 stop)
     usage+=$'[+NAME?tomcat stop - Stop the Apache Tomcat server.]'
+    ;;
+update)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
+    ;;
+version)
+    usage+=$'[+NAME?]
+    [+DESCRIPTION?]'
     ;;
 '')
     usage+=$'[+NAME?tomcat -- shell frontend for the Java Tomcat server.]
@@ -30,28 +61,8 @@ stop)
     CONFIGURATION and ENVIRONMENT VARIABLES section below. See also the SAMINFO section when running the \aSAMinfo\a ERP.]
     [+?Using distinct values for \b--home\b and \b--base\b options is recommended to simplify further upgrades and maintenance.
       This is documented in the MULTIPLE INSTANCES section below.]
-    [+?Note that support for Windows/Cygwin and OS 400 have been dropped.]
-    [+COMMANDS]{
-      [+backup?Create a snapshot of essential Tomcat configuration files.]
-      [+changelog?View the Git repository\'s \bChangeLog\b file, if accessible.]
-      [+debug?DEPRECATED. Start Tomcat in a debugger]
-      [+envs?Enumerated currently configured environments.]
-      [+install?Install Apache Tomcat into the specified \b--home\b directory.]
-      [+jpda?DEPRECATED. Start Tomcat under JPDA debugger]
-      [+readme?View the Git repository\'s \bREADME.md\b file, if accessible.]
-      [+run?Start Tomcat in the current window]
-      [+start?Start Tomcat in a separate window]
-      [+stop?Stop Tomcat]
-      [+update?Automatically download war files from GitHub and install them. Typically used to update SAMinfo.]
-      [+version?What version of tomcat are you running?]
-      [+build-tomcat?Build Apache Tomcat from source code. This will do a full \brelease\b build and install the resulting
-        output.]
-      [+build-libapr?Builds and installs the Apache Tomcat \bNative library\b, a library that allows to use the \bAPR\b variant
-        of \bHTTP\b and \bAJP\b protocol connectors in Apache Tomcat. It is built around \bOpenSSL\b and \bApache Portable
-        Runtime\b (APR) libraries. Those are the same libraries as used by Apache HTTPD Server project. The library is
-        enabled/disabled in the \bconf/server.xml\b configuration file through the \bAprLifecyleListener\b property.]
-      [+:build-daemon?Builds and installs the \bApache Commons Daemon\b, which provides wrappers that are used to install Apache
-          Tomcat as a daemon.]}' ;;
+    [+?Note that support for Windows/Cygwin and OS 400 have been dropped.]'
+    ;;
 esac
 
 if [[ ${rc.opts.command} != @(|envs) ]]; then                               # Options

@@ -1,4 +1,4 @@
-revision  : 2021-08-18 (Wed) 13:00:11
+revision  : 2021-08-19 (Thu) 19:05:36
 title     : Change log for the Tomcat command line interface utility
 # - date  : !!wip
 #   edit  : Changes made to existing code
@@ -7,13 +7,20 @@ title     : Change log for the Tomcat command line interface utility
 #   todo  : Things to plan and get done
 changelog :
 
-  - date  : 2021-08-18 (Wed) 13:00:11 !!wip
+  - date  : 2021-08-19 (Thu) 19:05:36 !!wip
     todo  : |
             - We should keep track of the environment used to *start* the Tomcat server so that *stop* and *status* commands
               could be run and automatically reuse the last environment if none provided with `--env`. We should also include a
               port option to allow each environment to have a dedicated port (or possibly set of ports).
             - Perhaps we should also keep track somewhere of all jarball dependencies, and merge their management with that of
               *PATinfo/sam-tomcat*
+
+  - date  : 2021-08-19
+    notes : Added the `commands` command as well as support for *external* commands à-la Git.
+    todo  : In `rc.prog.fpath` we need to distinguish commands from utility functions otherwise all `tomcat_*` functions will be
+            assumed to be commands. This could be achieve, for instance, by adding a Doxygen-like tag `@command` whose presence
+            indicates that this is a command. This could also be used for external commands as a means of passing configuration
+            options (e.g. what options to enable or disable).
 
   - date  : 2021-08-17
     notes : Added `envs`, `changelog`, and `readme` commands.
@@ -26,10 +33,12 @@ changelog :
               - We should have a *lite* version of fn *inform* that has no AIT dependencies
 
   - date  : 2021-08-16
-    notes : Adapted code to support TomEE and other Java JDK/JRE versions
+    notes : Transformed Tomcat support into TomEE support to have a full-fledged Java EE environment.
 
   - date  : 2021-08-15
-    notes : Initial version (based on Tomcat 6 and Java 6)
+    notes : Initial version of this script to mordernise `gp-tomcat`, make it Open Source, and deprecate dependencies on the AIT
+            framework. Additional `gp-*` commands will progressively make their way into this script such as the automated build
+            and installation of Tomcat.
     todo  : |
             - Fn *tomcat_cleanup*: cleanup directories ~/work ~/conf/Catalina ... ~/tmp/*
             - Fn *tomcat_install*: this needs to be implemented
@@ -41,5 +50,8 @@ changelog :
             - Fn *tomcat_start*:
               1. Add support for `--pipe` option when scanning the log file for server startup message
             - Fn *tomcat_update*: This needs to be implemented
+
+  - date  : 2012-06-21
+    notes : Initial version of the `gp-tomcat` utility still used today in production for SAMinfo.
 
 # vim: et fdm=indent sw=4 syn=yaml

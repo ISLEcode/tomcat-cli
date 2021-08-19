@@ -1,15 +1,29 @@
 #! ksh
-#! @revision 2021-08-18 (Wed) 10:18:23
+#! @revision 2021-08-19 (Thu) 18:07:57
 #! @brief    x
 
 
-# Collect the command to execute
-[[ $1 == -* ]] || { rc.opts.command=$1; shift; }
+# Collect the command to execute, if any, and which may be an external command
+rc.opts.command=commands; [[ -n $1 && $1 != -* ]] && { rc.opts.command=$1; shift; }
 [[ -n ${rc.opts.command} ]] || set -- --man $@
 
-tomcat_mkusage # Construct the usage string
+# If this is an external program, spawn it
+typeset exec=${rc.opts.command//-/};
+whence -pq tomcat-$exec && exec tomcat-$exec
+whence -pq tomcat_$exec && exec tomcat_$exec
 
-# Process all remaining command line options
+# Determine whether this is an internal or external function
+boolean rc.opts.internal_command=false; [[ $exec == @(|changelog|commands|readme|run) || -f ${rc.prog.fpath}/tomcat_$exec ]] &&
+        rc.opts.internal_command=true
+
+# See whether we can reach a KornShell function for this command
+(( rc.opts.internal_command == false )) &&
+{ whence -fq tomcat_$exec || clog +abort "${rc.opts.command}: unsupported command!"; }
+
+print -- "exec=$exec internal=${rc.opts.internal_command}"
+
+# Process all remaining command line options (provided this is not an in
+(( rc.opts.internal_command == true )) &&
 while getopts -a "tomctl${rc.opts.command:+ ${rc.opts.command}}" "$usage" opt; do case $opt in
     A)  typeset rc.jpda.address="$OPTARG"   ;;
     b)  typeset rc.tomcat.base="$OPTARG"    ;;

@@ -4,11 +4,12 @@ function tomcat_main {
 
     # Collect command to enact and make sure it is supported
     typeset exec=${rc.opts.command} pidf=${rc.tomcat.pidf};
-    [[ $exec == @(backup|changelog|check|envs|readme|restart|run|start|status|stop|update|version|view?(-)logs) ]] ||
-    clog +abort "$exec: unsupported command!"; exec=${exec//-/}
 
     # Display splash screen flushed left
     (( rc.opts.splash == true )) && tomcat_splash 0 0 16
+
+    # If this is an external function, enact it now
+    (( rc.opts.internal_command == true )) || { tomcat_$exec "$@"; return $?; }
 
     # Configure runtime environment where necessary
     [[ $exec == @(changelog|envs|readme) ]] || tomcat_config
