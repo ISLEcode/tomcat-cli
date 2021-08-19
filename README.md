@@ -1,5 +1,9 @@
 # Tomcat / TomEE CLI frontend
 
+- [Overview](#overview)
+- [Installation](#installation)
+- [Documentation](#documentation)
+
 ## Overview
 
 This repository contains a command line utility named `tomcat` which provides a single point of access to manage a Tomcat server
