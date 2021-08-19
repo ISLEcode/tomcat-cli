@@ -20,21 +20,47 @@ Cygwin, OS400 and Windows, as available in standard Tomcat / TomEE distributions
 production environments are run on Amazon Linux and CentOS; it is forseen that only minor adjustements may be required to operate
 this on other POSIX/UNIX or Linux distributions.
 
-This utility is currently customised for the [SAMinfo ERP](http://saminfo.ch) for which it is primarily intended. This can be
-easily changed by changing the `tomcat_splash` function and adjusting the custom settings in `tomcat_config` and `tomcat_update`.
-
 **Note** Though this utility was only committed to GitHub in August 2021, it has been used in production since 2012 and has been
 tested with various implementations of Tomcat and TomEE since Tomcat 6.0.29.
 
 ## Features
 
+This utility is currently customised for the [SAMinfo ERP](http://saminfo.ch) for which it is primarily intended. This can be
+easily changed by changing the `tomcat_splash` function and adjusting the custom settings in `tomcat_config` and `tomcat_update`.
+
 ### Wealth of commands
 
 ![image](https://user-images.githubusercontent.com/6306262/130101631-7f4379bf-e5b1-4f2e-af8e-f24f47493b94.png)
 
+Simply run the following command to list all available commands:
+
+```.sh
+tomcat
+```
+
 ### Multiple execution environments
 
 ![image](https://user-images.githubusercontent.com/6306262/130083108-13ab1df9-3fc3-41e4-80e9-591a05672b19.png)
+
+Environments are maintained in `.env*` files in the top level directory. Multiple such environments can be defined and easily listed with the command:
+
+```.sh
+tomcat envs
+```
+
+### Easily manage and view YAML-based change logs
+
+![image](https://user-images.githubusercontent.com/6306262/130104351-b82e846a-c07c-47ea-8064-431a1361f68c.png)
+
+To view the change log, simply issue the following command:
+
+```.sh
+tomcat changelog
+```
+
+For the maintainer's convenience, the YAML file is maintained in reverse chronological order so that updates are done at the top of the file; however, when displayed, the entries are presented in chronological order, for the reader's convenience.
+
+Likewise TODO items may be attached in the YAML file to each change date; however, when displayed, they will be grouped together and displayed last.
 
 ## Installation
 
