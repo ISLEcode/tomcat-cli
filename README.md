@@ -23,6 +23,9 @@ this on other POSIX/UNIX or Linux distributions.
 This utility is currently customised for the [SAMinfo ERP](http://saminfo.ch) for which it is primarily intended. This can be
 easily changed by changing the `tomcat_splash` function and adjusting the custom settings in `tomcat_config` and `tomcat_update`.
 
+**Note** Though this utility was only committed to GitHub in August 2021, it has been used in production since 2012 and has been
+tested with various implementations of Tomcat and TomEE since Tomcat 6.0.29.
+
 ## Installation
 
 The repository structure should be kept as is; but can be located anywhere. By convention, we place it in `/opt/tomcat-cli`:
