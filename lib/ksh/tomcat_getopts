@@ -1,5 +1,5 @@
 #! ksh
-#! @revision 2021-08-19 (Thu) 18:07:57
+#! @revision 2021-08-23 (Mon) 11:33:51
 #! @brief    x
 
 
@@ -20,11 +20,10 @@ boolean rc.opts.internal_command=false; [[ $exec == @(|changelog|commands|readme
 (( rc.opts.internal_command == false )) &&
 { whence -fq tomcat_$exec || clog +abort "${rc.opts.command}: unsupported command!"; }
 
-print -- "exec=$exec internal=${rc.opts.internal_command}"
-
-# Process all remaining command line options (provided this is not an in
-(( rc.opts.internal_command == true )) &&
-while getopts -a "tomctl${rc.opts.command:+ ${rc.opts.command}}" "$usage" opt; do case $opt in
+# Process all remaining command line options (provided this is not an external command)
+if (( rc.opts.internal_command == true )); then
+    tomcat_mkusage # Construct the usage string
+    while getopts -a "tomcat${rc.opts.command:+ ${rc.opts.command}}" "$usage" opt; do case $opt in
     A)  typeset rc.jpda.address="$OPTARG"   ;;
     b)  typeset rc.tomcat.base="$OPTARG"    ;;
     c)  typeset rc.tomcat.clog="$OPTARG"    ;;
@@ -59,7 +58,9 @@ while getopts -a "tomctl${rc.opts.command:+ ${rc.opts.command}}" "$usage" opt; d
     05) (( OPTARG == 0 )) && rc.opts.splash=false || rc.opts.splash=true ;;
     06) boolean rc.opts.nohup=true          ;;
     20) typeset rc.java.jsse="$OPTARG"      ;;
-esac; done; (( OPTIND > 1 )) && shift $(( OPTIND - 1 ))
+    21) unset JARREPO JAVA_HOME JAVA_OPTS CATALINA_HOME CLASSPATH ;;
+    esac; done; (( OPTIND > 1 )) && shift $(( OPTIND - 1 ))
+fi
 
 tomcat_getopts() {;}
 

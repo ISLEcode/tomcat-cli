@@ -1,5 +1,5 @@
 #! ksh
-#! @revision 2021-08-19 (Thu) 17:36:53
+#! @revision 2021-08-23 (Mon) 11:33:14
 #! @brief    Initialise the `getopts(1)` usage string
 
 typeset usage='[-1s1]'; usage+=$(grep '^#! @' ${rc.prog.path}/${rc.prog.name} | sed 's/^#! @/[-/; s/  */?/; s/$/]/')
@@ -69,6 +69,8 @@ if [[ ${rc.opts.command} != @(|envs) ]]; then                               # Op
 usage+=$'[b:base?Base directory for resolving dynamic portions of a Tomcat installation.
   If not present, resolves to the same directory that \b--home\b points to.
   This option replaces/overrides the \bCATALINA_BASE\b environment variable.]:[STRING]
+[=21:clear?Clear environment variables \bCATALINA_HOME\b, \bCLASSPATH\b, \bJARREPO\b, \bJAVA_HOME\b and \bJAVA_OPTS\b if any of
+  these were declared prior to invoking this utility.]
 [c:console?Full path to a file where \bSTDOUT\b and \bSTDERR\b will be redirected.
   This option replaces/overrides the \bCATALINA_OUT\b environment variable.]:[STRING]
 [e:env?Specify an environment SUFFIX that will be used to load custom presets. The environment file\'s name will be constructed
