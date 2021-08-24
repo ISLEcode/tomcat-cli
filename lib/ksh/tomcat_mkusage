@@ -69,7 +69,7 @@ if [[ ${rc.opts.command} != @(|envs) ]]; then                               # Op
 usage+=$'[b:base?Base directory for resolving dynamic portions of a Tomcat installation.
   If not present, resolves to the same directory that \b--home\b points to.
   This option replaces/overrides the \bCATALINA_BASE\b environment variable.]:[STRING]
-[=21:clear?Clear environment variables \bCATALINA_HOME\b, \bCLASSPATH\b, \bJARREPO\b, \bJAVA_HOME\b and \bJAVA_OPTS\b if any of
+[=21:clear?Clear environment variables \bCATALINA_HOME\b, \bCLASSPATH\b, \bJAVA_JARS\b, \bJAVA_HOME\b and \bJAVA_OPTS\b if any of
   these were declared prior to invoking this utility.]
 [c:console?Full path to a file where \bSTDOUT\b and \bSTDERR\b will be redirected.
   This option replaces/overrides the \bCATALINA_OUT\b environment variable.]:[STRING]

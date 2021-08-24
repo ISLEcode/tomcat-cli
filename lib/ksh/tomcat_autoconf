@@ -1,0 +1,139 @@
+#! ksh
+
+function tomcat_autoconf {
+    clog +info 'No environment set; trying auto-configuration.'
+
+    # If running in an AIT environment snif the process list for candidate processes
+    typeset -A ps; whence -fq pstatus && pstatus -v etime,gid,logname -g 'org.apache.catalina.startup.Bootstrap start' @ps
+
+    # We have nothing to do if no processes were found
+    integer count=${#ps[@]}; # (( count > 0 )) || return 1
+
+    # Try to reconstruct the appropriate environment for each process
+    for id in ${!ps[@]}; do
+
+        nameref pid=ps[$id]; typeset cmd="${pid.command}" args="${pid.args%org.apache.catalina.startup.Bootstrap start}"
+
+        pid.java_home="${cmd%/bin/java}";
+        [[ ${pid.java_home} == */javase/@(linux|macos)/* ]] && pid.java_jars=${pid.java_home%/javase/@(linux|macos)*}
+
+        # TODO We need to set rc.java.major
+        # TODO Detect rc.java.source rc.java.target (-source -target)
+        # TODO Collect JPDA defaults
+        # TODO Check for endorsed dirs
+        # TODO Check for CATALINA_PID
+        # TODO Check for CATALINA_UMASK
+        # TODO Check for CATALINA_OUT
+        # TODO Check for CATALINA_TMPDIR
+        # TODO Checkj for Java 9 specific start-up parameters
+
+        # Notify user that we have found a Tomcat process and provide essential information
+        for a in ${args//-classpath\ /-classpath=}; do case $a in
+            -Dcatalina.home=*)                                              pid.home=${a#*=}        ;;
+            -Dcatalina.base=*)                                              pid.base=${a#*=}        ;;
+            -classpath=*)                                                   pid.classpath=${a#*=}   ;;
+            -Djava.io.tmpdir=*)                                             pid.tmpdir=${a#*=}      ;;
+            -Dorg.apache.catalina.security.SecurityListener.UMASK=*)        pid.umask=${a#=}        ;;
+            -Djava.util.logging.config.file=*)                              pid.log_config=${a#*=}  ;;
+            -Djava.util.logging.manager=*)                                  pid.log_manager=${a#*=} ;;
+            -Djdk.tls.ephemeralDHKeySize=*)                                 pid.istomee=1           ;;
+            -Djava.protocol.handler.pkgs=org.apache.catalina.webresources)  pid.istomee=1           ;;
+            -javaagent:*)                                                   :                       ;;
+            *)                                                              pid.java_opts+=" $a"    ;;
+        esac; done
+
+        typeset info='Found'; (( rc.opts.force == true && count == 1 )) && info='Using'
+        info+=" Tomcat process \E[33mpid=${pid.pid}\E[0m (\E[35mppid=${pid.ppid}\E[0m) run by user"
+        info+=" \E[33m${pid.logname}\E[0m (\E[35mgid=${pid.gid}\E[0m) running since \E[35m${pid.etime}\E[0m (elapsed time)."
+        clog +croak-warn "$info"
+
+        if (( count == 1 && rc.opts.force == true )); then
+            [[ -n ${pid.base} ]] && pid.base=${pid.home}
+            rc.java.home=${pid.java_home}
+
+            rc.tomcat.home=${pid.home}
+            rc.tomcat.base=${pid.base}
+            rc.tomcat.mask=${pid.umask}
+            rc.tomcat.temp=${pid.tmpdir}
+            rc.tomcat.pidf=${pid.base}/logs/tomcat.pid
+            rc.tomcat.clog=${pid.base}/logs/tomcat.log
+            [[ -n ${pid.istomee} ]] && boolean rc.tomcat.istomee=true
+
+            boolean rc.tomcat.pid.running=true
+            tomcat_setpidf "${pid.cmd} ${pid.args}" ${pid.pid}
+
+            info='Environment configured for this PID;'
+            [[ ${rc.opts.command} == @(start|restart) ]] &&
+            clog +croak-warn "$info don't use autoconfigured environments to run \E[35m${rc.opts.commmand}\E[0m commands."
+
+            return 0
+
+        else
+            (( rc.opts.verbosity > 2 )) ||
+            clog +croak-info 'Run \E[35mtomcat status -vvv\E[0m to get further details on the above process.'
+            (( count == 1 )) && clog +croak-info 'Use the \E[33m--force\E[0m option to resolve and use this process.'
+        fi
+
+        (( rc.opts.verbosity > 2 )) || continue
+
+        # Beautify output
+        typeset jars=${pid.java_jars}; if [[ -n $jars ]]; then
+            (( ++ len ))
+            [[ ${pid.home}       == $jars?(/*) ]] && pid.home="\$JAVA_JARS${.sh.match[1]:+${.sh.match[1]}}"
+            [[ ${pid.base}       == $jars?(/*) ]] && pid.base="\$JAVA_JARS${.sh.match[1]:+${.sh.match[1]}}"
+            [[ ${pid.tmpdir}     == $jars?(/*) ]] && pid.tmpdir="\$JAVA_JARS${.sh.match[1]:+${.sh.match[1]}}"
+            [[ ${pid.java_home}  == $jars?(/*) ]] && pid.java_home="\$JAVA_JARS${.sh.match[1]:+${.sh.match[1]}}"
+            [[ ${pid.log_config} == $jars?(/*) ]] && pid.log_config="\$JAVA_JARS${.sh.match[1]:+${.sh.match[1]}}"
+            while [[ ${pid.classpath}  == ?(*:)$jars?(/*) ]]
+            do pid.classpath="${.sh.match[1]:+${.sh.match[1]}}\$JAVA_JARS${.sh.match[2]:+${.sh.match[2]}}"
+            done
+
+            jars=${pid.home}
+            [[ ${pid.base}       == $jars?(/*) ]] && pid.base="\$CATALINA_HOME${.sh.match[1]:+${.sh.match[1]}}"
+            [[ ${pid.tmpdir}     == $jars?(/*) ]] && pid.tmpdir="\$CATALINA_HOME${.sh.match[1]:+${.sh.match[1]}}"
+            [[ ${pid.log_config} == $jars?(/*) ]] && pid.log_config="\$CATALINA_HOME${.sh.match[1]:+${.sh.match[1]}}"
+            while [[ ${pid.classpath}  == ?(*:)$jars?(/*) ]]
+            do pid.classpath="${.sh.match[1]:+${.sh.match[1]}}\$CATALINA_HOME${.sh.match[2]:+${.sh.match[2]}}"
+            done
+
+        fi
+
+        # Construct the command line and environment file variants to configure this utility for this process
+        typeset env= run=;
+        [[ -n ${pid.java_jars}    ]] && run+="JAVA_JARS=${pid.java_jars} \\\\" \
+                                        env+="JAVA_JARS=${pid.java_jars}\n"
+        [[ -n ${pid.home}         ]] && run+="${run:+\n}CATALINA_HOME=${pid.home} \\\\" \
+                                        env+="CATALINA_HOME=${pid.home}\n"
+                                        run+="${run:+\n}tomcat '<command>'\\\\\n  --home=\$CATALINA_HOME \\\\"
+        [[ -n ${pid.base}         ]] && run+="\n  --base=${pid.base} \\\\" \
+                                        env+="CATALINA_BASE=${pid.base}\n"
+        [[ -n ${pid.tmpdir}       ]] && run+="\n  --temp=${pid.tmpdir} \\\\"\
+                                        env+="CATALINA_TMPDIR=${pid.tmpdir}\n"
+        [[ -n ${pid.classpath}    ]] && run+="\n  --classpath=${pid.classpath} \\\\"\
+                                        env+="CLASSPATH=${pid.classpath}\n"
+        [[ -n ${pid.java_home}    ]] && run+="\n  --java-home=${pid.java_home} \\\\"\
+                                        env+="JAVA_HOME=${pid.java_home}\n"
+        [[ -n ${pid.java_opts}    ]] && run+="\n  --java-opts='${pid.java_opts}'"\
+                                        env+="JAVA_OPTS='${pid.java_opts}'\n"
+        [[ -n ${pid.log_manager}  ]] && run+="\n  --log-manager=${pid.log_manager} \\\\"\
+                                        env+="LOGGING_MANAGER=${pid.log_manager}\n"
+        [[ -n ${pid.log_config}   ]] && run+="\n  --log-config=${pid.log_config} \\\\"\
+                                        env+="LOGGING_CONFIG=${pid.log_config}\n"
+        [[ -n ${pid.java_jsse}    ]] && run+="\n  --jsse=${pid.java_jsse} \\\\"\
+                                        env+="JSSE_OPTS=${pid.java_jsse}\n"
+        [[ -n ${pid.umask}        ]] && run+="\n  --umask=${pid.umask} \\\\"
+                                        run=${run%??}
+
+        info='Use the following code snippet to control this process; replace \E[35m<command>\E[0m with the appropriate command.'
+        clog +info "$info"; printf "\E[32m---\E[0m\n$run\n\E[32m---\E[0m\n"
+
+        clog +info 'Alternatively you can create the following environment file and invoke it with the \E[35m--env\E[0m option:'
+        printf "\E[32m---\E[0m\n#! ksh\n#! @revision %T\n#! @brief    Please fill this in\n\n$env\n\n# __END__\n\E[32m---\E[0m\n"
+
+    done
+
+    return 1
+
+}
+
+# __END__

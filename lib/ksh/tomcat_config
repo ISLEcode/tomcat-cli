@@ -3,18 +3,22 @@
 # Strip leading/trailing : in CLASSPATH
 
 function tomcat_config {
+    print "Tomcat CLI ${rc.prog.version:+v${rc.prog.version}}${rc.prog.release:+ (${rc.prog.release})}"
 
-    # Import the master environment, if any
+    # Import the master environment, if any, otherwise try to determine environment from running processes
     typeset env=${rc.prog.topdir}/${rc.opts.env:-.env}; [[ -f $env ]] && . $env ||
-    clog +warn "${env##*/}: environment file not found."
+    { clog +warn "${env##*/}: environment file not found."; tomcat_autoconf; }
 
     # Assign essential Tomcat defaults
     [[ -z ${rc.tomcat.home} ]] && rc.tomcat.home="${CATALINA_HOME:-${rc.prog.topdir}}"
     [[ -z ${rc.tomcat.base} ]] && rc.tomcat.base="${CATALINA_BASE:-${rc.tomcat.home}}"
 
     # Make sure we are in presence of a Tomcat installation
-    [[ -f ${rc.tomcat.home}/bin/bootstrap.jar && -f ${rc.tomcat.home}/lib/catalina.jar ]] ||
-    clog +abort 'Cannot detect a Tomcat installation; please use the \E[33m--home\E[0m option to specify its location'
+    [[ -f ${rc.tomcat.home}/bin/bootstrap.jar && -f ${rc.tomcat.home}/lib/catalina.jar ]] || {
+        [[ ${rc.opts.command} == start ]] &&
+        clog +abort 'Cannot detect a Tomcat installation; please use the \E[33m--home\E[0m option to specify its location' ||
+        clog +warn  'Cannot detect a Tomcat installation; we will try to detect it automatically.'
+    }
 
     # Determine if we are running legacy Tomcat or TomEE
     boolean rc.tomcat.istomee=false; integer x=$(command ls ${rc.tomcat.home}/lib/tomee* 2>/dev/null | wc -l | sed 's/[^0-9]//g')
@@ -154,10 +158,10 @@ function tomcat_config {
     rc.java.opts+=" -javaagent:${rc.tomcat.home}/lib/openejb-javaagent.jar"
 
     # Register custom URL handlers so custom URL handles (specifically 'war:...') can be used in the security policy
-    (( rc.tomcat.istomee )) && rc.java.opts+=' -Djava.protocol.handler.pkgs=org.apache.catalina.webresources'
+    (( rc.tomcat.istomee == true )) && rc.java.opts+=' -Djava.protocol.handler.pkgs=org.apache.catalina.webresources'
 
     # Add JSSE support where necessary
-    if (( rc.tomcat.istomee )); then
+    if (( rc.tomcat.istomee == true )); then
         [[ -z ${rc.java.jsse} ]] && rc.java.jsse='-Djdk.tls.ephemeralDHKeySize=2048'
         [[ -n ${rc.java.jsse} ]] && rc.java.opts+=" ${rc.java.jsse}"
     fi

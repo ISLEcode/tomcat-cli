@@ -12,7 +12,7 @@ function tomcat_main {
     (( rc.opts.internal_command == true )) || { tomcat_$exec "$@"; return $?; }
 
     # Configure runtime environment where necessary
-    [[ $exec == @(changelog|envs|readme) ]] || tomcat_config
+    [[ $exec == @(changelog|commands|envs|readme) ]] || tomcat_config
 
     # Populate the command line shadown variable
     if (( rc.prog.isbatch == false )); then

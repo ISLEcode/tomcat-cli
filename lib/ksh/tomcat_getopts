@@ -58,7 +58,7 @@ if (( rc.opts.internal_command == true )); then
     05) (( OPTARG == 0 )) && rc.opts.splash=false || rc.opts.splash=true ;;
     06) boolean rc.opts.nohup=true          ;;
     20) typeset rc.java.jsse="$OPTARG"      ;;
-    21) unset JARREPO JAVA_HOME JAVA_OPTS CATALINA_HOME CLASSPATH ;;
+    21) unset JAVA_JARS JAVA_HOME JAVA_OPTS CATALINA_HOME CLASSPATH ;;
     esac; done; (( OPTIND > 1 )) && shift $(( OPTIND - 1 ))
 fi
 

@@ -4,12 +4,16 @@ function tomcat_stop {
 
     # Read-in the PID file if it exists and assert that Tomcat is running; remove any state PID file.
     tomcat_getpidf; if  (( rc.tomcat.pid.file != PIDF_FOUND || rc.tomcat.pid.id == 0 || rc.tomcat.pid.running == false )); then
+
+        # Output appropriate information for above failed test(s)
         (( rc.tomcat.pid.file != PIDF_FOUND )) && clog +info "Invalid or missing PID file (${rc.tomcat.pidf##*/})"
         (( rc.tomcat.pid.running == false   )) && clog +info "Stale Tomcat process ID (${rc.tomcat.pid.id})"
         (( rc.tomcat.pid.id == 0            )) && clog +info 'Process ID cannot be null!'
+
         clog +croak-info 'Tomcat is apparently already stopped.'
         (( rc.tomcat.pid.file == PIDF_NOTFOUND )) || tomcat_delpidf stale
         return
+
     fi
 
     # Try stopping Tomcat cleanly by issuing the appropriate Java statement
@@ -19,32 +23,8 @@ function tomcat_stop {
         return
     else $cmd; fi
 
-    # We try using the system `kill(1)` command to bring down, gracefully at first, the process
-    integer signal; for signal in 0 15 1 3 9; do
-
-        # Apply grace period, if any, and verify whether process is still running
-        (( rc.tomcat.wait > 0 )) && sleep ${rc.tomcat.wait}
-        ps -p $pid >/dev/null 2>&1 || rc.tomcat.pid.running=false
-
-        # We're done if the process has stopped
-        (( rc.tomcat.pid.running == false )) && break
-
-        # We only proceed further if the --force option has been given (except for kill -0)
-        (( signal > 0 && rc.opts.force == false )) && break
-
-        kill -$signal $pid >/dev/null 2>&1 || clog +error "An error occured when trying to kill PID $pid with signal $signal."
-
-    done
-
-    # If the Tomcat process is still running, we have a fatal error
-    if (( rc.tomcat.pid.running == true )); then
-        typeset msg="Failed to terminate Tomcat process #$pid;"
-        (( signal == 9 )) && msg+='this might be a zombie process.' || msg+='try the \E[33m--force\E[0m option.'
-        clog +abort "$msg PID file (${rc.tomcat.pidf##*/}) has been left in place."
-    fi
-
-    # Now that the Tomcat process has been stopped, clear the PID file
-    tomcat_delpidf
+    # Gracefully shutdown the Tomcat server and clear the PID file
+    tomcat_kill $pid && tomcat_delpidf
 
     # We're done
     clog +step-pass "Tomcat (#$pid) successfully stopped."
