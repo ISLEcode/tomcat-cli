@@ -1,7 +1,34 @@
 #! ksh
 
 function tomcat_autoconf {
+
+    # Special handling if we are in a sandbox and our parent directory is the SAMinfo repository
+    if [[ -f ${rc.prog.topdir}/../.env ]]; then
+
+        # Se if the `.env` file exists in the SAMinfo repository, and collect the ENV variable
+        typeset -l env=$(sed -n '/^ENV=/{s/.*=//;p;}' ${rc.prog.topdir}/../.env)
+
+        # Silently ignore absence of the variable, otherwise see if we have a matching environment
+        if [[ -n $env ]]; then
+
+            # If our environments match, use the SAMinfo ENV setting
+            if [[ -f ${rc.prog.topdir}/.env-$env ]]; then
+                env=${rc.prog.topdir}/.env-$env
+                typeset rc.opts.env=$env
+                . $env
+                return
+            else
+                env="$(cd ${rc.prog.topdir}; make ksh-env 2>/dev/null)"
+                [[ -n $env ]] && { eval "$env"; return; }
+            fi
+
+            clog +warn "Consider creating an environment that matches SAMinfo's \E[35m$env\E[0m environment."
+
+        fi
+    fi
+
     clog +info 'No environment set; trying auto-configuration.'
+
 
     # If running in an AIT environment snif the process list for candidate processes
     typeset -A ps; whence -fq pstatus && pstatus -v etime,gid,logname -g 'org.apache.catalina.startup.Bootstrap start' @ps

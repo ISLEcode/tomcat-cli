@@ -3,7 +3,7 @@
 function view_changelog {
 
     # Collect command line arguments and make sure we have a file to process
-    typeset cfile=$1; [[ -n $1 && -f $1 && -r $1 ]] || return
+    [[ -n $1 && -f $1 && -r $1 ]] || return; typeset cfile=$1
 
     # Assert that we have the right tools to parse and display the change log
     whence -q df-y2k || clog +fatal 'The \E[32;4mAIT framework\E[0m has not been installed!'
@@ -12,7 +12,7 @@ function view_changelog {
     # Load the YAML change log file and convert it to KAML
     eval "$(df-y2k -p kaml $cfile)"
 
-    # Initialise defaultds
+    # Initialise defaults
     typeset clog todo; nameref journal=kaml.changelog
 
     # Process all entries in our change log

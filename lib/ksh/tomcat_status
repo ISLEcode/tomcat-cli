@@ -17,8 +17,14 @@ function tomcat_status {
 
     else
 
-        if (( rc.tomcat.pid.file == PIDF_NOTFOUND ))
-        then clog +croak-info 'Apparently Tomcat is not running'
+        if (( rc.tomcat.pid.file == PIDF_NOTFOUND )); then
+            typeset pid=$(ps -ef | grep org.apache.catalina.startup | grep -v grep | awk '{print $2}')
+            if [[ -n $pid ]]; then
+                tomcat_setpidf "$(ps -o command -p $pid | sed 1d)" $pid
+                clog +croak-info "Tomcat is running with PID $pid (but no PID file)."
+            else
+                clog +croak-info 'Apparently Tomcat is not running'
+            fi
         else clog +croak-warn 'Tomcat is not running but we have a PID file!'; fi
 
         typeset name; for name in \

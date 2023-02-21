@@ -1,4 +1,4 @@
-revision  : 2021-08-19 (Thu) 19:05:36
+revision  : 2021-08-25 (Wed) 15:28:05
 title     : Change log for the Tomcat command line interface utility
 # - date  : !!wip
 #   edit  : Changes made to existing code
@@ -7,13 +7,21 @@ title     : Change log for the Tomcat command line interface utility
 #   todo  : Things to plan and get done
 changelog :
 
-  - date  : 2021-08-19 (Thu) 19:05:36 !!wip
+  - date  : 2021-08-25 (Wed) 15:28:05 !!wip
     todo  : |
             - We should keep track of the environment used to *start* the Tomcat server so that *stop* and *status* commands
               could be run and automatically reuse the last environment if none provided with `--env`. We should also include a
               port option to allow each environment to have a dedicated port (or possibly set of ports).
             - Perhaps we should also keep track somewhere of all jarball dependencies, and merge their management with that of
               *PATinfo/sam-tomcat*
+
+  - date  : 2021-08-23
+    nodes : Added auto-dectection of .env file in SAMinfo repository when invoked without an --env option
+
+  - date  : 2021-08-22
+    nodes : Added autoconfiguration capability that allows to recreate a PID file from a Tomcat process. This feature is enabled
+            when the `--force` option is enabled; if the option is not set, and the verbosity level is appropriately set (`-vvv`)
+            the run command will be output the options required to reuse the same environment via the `tomcat` utility.
 
   - date  : 2021-08-19
     notes : Added the `commands` command as well as support for *external* commands à-la Git.
